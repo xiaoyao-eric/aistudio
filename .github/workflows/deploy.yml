@@ -43,3 +43,13 @@ jobs:
             cd /aistudio
             docker compose pull
             docker compose up -d
+
+      - name: Notify Feishu
+        if: always()
+        env:
+          WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK }}
+          STATUS: ${{ job.status }}
+        run: |
+          curl -s -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"msg_type":"interactive","card":{"header":{"title":{"tag":"plain_text","content":"🚀 AI Studio 部署通知"},"template":"'$([ "$STATUS" = "success" ] && echo "green" || echo "red")'"},"elements":[{"tag":"markdown","content":"**状态：** '"$([ "$STATUS" = "success" ] && echo "✅ 部署成功" || echo "❌ 部署失败")"'\n**Commit：** `${{ github.sha }}`\n**分支：** `${{ github.ref_name }}`\n**触发人：** ${{ github.actor }}"}]}}'
