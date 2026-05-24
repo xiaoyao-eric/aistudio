@@ -1,8 +1,8 @@
 version: "3.8"
 services:
   app:
-    image: aistudio
+    image: ghcr.io/xiaoyao-eric/aistudio:latest
     container_name: aistudio
     ports:
-      - "80:80"
+      - "5002:5002"
     restart: unless-stopped
