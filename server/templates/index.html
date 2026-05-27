@@ -2,160 +2,902 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>财务人员工作台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>探索世界 - 3D 旅游地球</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
+            overflow: hidden;
+            background: #000a14;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
+            color: #fff;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        .container {
-            max-width: 900px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border-radius: 32px;
-            padding: 48px 40px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 44px;
-        }
-
-        .header .icon {
-            font-size: 48px;
-            margin-bottom: 12px;
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
             display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
 
-        .header h1 {
-            font-size: 32px;
-            font-weight: 700;
-            color: #f1f5f9;
-            letter-spacing: 2px;
-        }
-
-        .header p {
-            color: #94a3b8;
-            font-size: 15px;
-            margin-top: 8px;
-        }
-
-        .divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);
-            margin-bottom: 36px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 20px;
-            padding: 28px 24px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+        /* Loading */
+        #loading {
+            position: fixed;
+            inset: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-align: center;
+            justify-content: center;
+            background: #000a14;
+            z-index: 100;
+            transition: opacity 0.8s ease;
         }
-
-        .card:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.15);
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
-
-        .card:active {
-            transform: translateY(-1px);
+        #loading .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(0, 240, 255, 0.15);
+            border-top-color: #00f0ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
-
-        .card .emoji {
-            font-size: 40px;
-            margin-bottom: 16px;
-            display: block;
-        }
-
-        .card .name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #f1f5f9;
-            margin-bottom: 6px;
-        }
-
-        .card .desc {
-            font-size: 13px;
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading p {
+            margin-top: 20px;
             color: #94a3b8;
-            line-height: 1.5;
+            font-size: 14px;
+            letter-spacing: 2px;
         }
 
-        .footer {
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            padding: 24px 32px;
+            background: linear-gradient(180deg, rgba(0,10,20,0.8) 0%, transparent 100%);
+            pointer-events: none;
             text-align: center;
-            margin-top: 36px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(148, 163, 184, 0.15);
-            color: #64748b;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #f1f5f9, #00f0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
             font-size: 13px;
+            color: rgba(148,163,184,0.8);
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        /* Hint */
+        .hint {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            font-size: 13px;
+            color: rgba(148,163,184,0.6);
+            letter-spacing: 1px;
+            animation: pulse-hint 3s ease-in-out infinite;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @keyframes pulse-hint {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        /* Tooltip */
+        #tooltip {
+            position: fixed;
+            z-index: 20;
+            padding: 8px 16px;
+            background: rgba(0,20,40,0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0,240,255,0.2);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            white-space: nowrap;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        #tooltip.visible { opacity: 1; }
+        #tooltip .tooltip-sub {
+            font-size: 11px;
+            font-weight: 400;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        /* Info Panel */
+        #infoPanel {
+            position: fixed;
+            top: 0;
+            right: -480px;
+            width: 440px;
+            max-width: 90vw;
+            height: 100vh;
+            z-index: 30;
+            background: rgba(0, 15, 30, 0.92);
+            backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(0,240,255,0.1);
+            padding: 40px 32px;
+            overflow-y: auto;
+            transition: right 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+        }
+        #infoPanel.open { right: 0; }
+        #infoPanel::-webkit-scrollbar { width: 4px; }
+        #infoPanel::-webkit-scrollbar-track { background: transparent; }
+        #infoPanel::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.3); border-radius: 2px; }
+
+        .panel-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        .panel-close:hover {
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+            transform: rotate(90deg);
+        }
+
+        .panel-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(0,240,255,0.12);
+            border: 1px solid rgba(0,240,255,0.2);
+            border-radius: 20px;
+            font-size: 11px;
+            color: #00f0ff;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+        .panel-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+        .panel-desc {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #cbd5e1;
+            margin-bottom: 28px;
+        }
+        .panel-section {
+            margin-bottom: 24px;
+        }
+        .panel-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #00f0ff;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-section ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .panel-section ul li {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            font-size: 14px;
+            color: #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .panel-section ul li:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(0,240,255,0.2);
+        }
+        .panel-gallery {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+        .panel-gallery .gallery-item {
+            aspect-ratio: 16/10;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(0,240,255,0.06), rgba(0,100,200,0.06));
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: rgba(255,255,255,0.3);
+            overflow: hidden;
+        }
+        .panel-gallery .gallery-item span {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            #infoPanel {
+                width: 100vw;
+                max-width: 100vw;
+                right: -100vw;
+                padding: 32px 24px;
+            }
+            #infoPanel.open { right: 0; }
+            .header h1 { font-size: 18px; }
+            .header p { font-size: 12px; }
+            .panel-title { font-size: 22px; }
+            .hint { font-size: 11px; bottom: 24px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <span class="icon">🧾</span>
-            <h1>财务人员工作台</h1>
-            <p>常用官方网站 · 点击即达</p>
-        </div>
 
-        <div class="divider"></div>
+<div id="loading">
+    <div class="spinner"></div>
+    <p>加载地球...</p>
+</div>
 
-        <div class="grid">
-            <a class="card" href="https://www.chinatax.gov.cn" target="_blank" rel="noopener noreferrer">
-                <span class="emoji">🏛️</span>
-                <span class="name">国家税务总局</span>
-                <span class="desc">税收政策 · 纳税服务 · 官方门户</span>
-            </a>
+<div id="canvas-container"></div>
 
-            <a class="card" href="https://12366.chinatax.gov.cn" target="_blank" rel="noopener noreferrer">
-                <span class="emoji">📞</span>
-                <span class="name">12366 纳税服务平台</span>
-                <span class="desc">纳税咨询 · 办税指南 · 热线服务</span>
-            </a>
+<div class="header">
+    <h1>✦ 探索世界</h1>
+    <p>点击光点，发现精彩目的地</p>
+</div>
 
-            <a class="card" href="https://ausm.mof.gov.cn" target="_blank" rel="noopener noreferrer">
-                <span class="emoji">📚</span>
-                <span class="name">全国会计人员统一服务管理平台</span>
-                <span class="desc">会计继续教育 · 资格管理 · 信息采集</span>
-            </a>
+<div class="hint">🖱 拖拽旋转 · 点击光点探索</div>
 
-            <a class="card" href="http://www.gsxt.gov.cn" target="_blank" rel="noopener noreferrer">
-                <span class="emoji">🔍</span>
-                <span class="name">国家企业信用信息公示系统</span>
-                <span class="desc">企业信用查询 · 年报公示 · 经营异常名录</span>
-            </a>
-        </div>
+<div id="tooltip">
+    <div class="tooltip-name" id="tooltipName"></div>
+    <div class="tooltip-sub" id="tooltipSub"></div>
+</div>
 
-        <div class="footer">
-            财务人员工作台 v1.0 · 所有链接均跳转至官方网站
-        </div>
+<div id="infoPanel">
+    <button class="panel-close" id="panelClose">✕</button>
+    <div class="panel-badge" id="panelBadge">目的地</div>
+    <div class="panel-title" id="panelTitle"></div>
+    <div class="panel-desc" id="panelDesc"></div>
+    <div class="panel-gallery" id="panelGallery"></div>
+    <div class="panel-section">
+        <h3>📍 热门景点</h3>
+        <ul id="panelAttractions"></ul>
     </div>
+    <div class="panel-section">
+        <h3>🍜 特色美食</h3>
+        <ul id="panelFood"></ul>
+    </div>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─── Data ──────────────────────────────────────────────
+const LOCATIONS = [
+    {
+        name: '贵州', lat: 26.65, lng: 106.63,
+        badge: '📍 中国 · 贵州',
+        desc: '多彩贵州，山地公园省。这里有世界自然遗产与千年苗寨，喀斯特地貌造就了绝美的山水画卷，少数民族文化在这里生生不息。',
+        attractions: ['黄果树瀑布', '荔波小七孔', '西江千户苗寨', '梵净山', '镇远古城', '黔灵山公园'],
+        food: ['酸汤鱼', '肠旺面', '花溪牛肉粉', '丝娃娃', '豆腐圆子'],
+        emoji: '🏔️'
+    },
+    {
+        name: '北京', lat: 39.90, lng: 116.40,
+        badge: '📍 中国 · 北京',
+        desc: '千年古都，中国的政治文化中心。红墙黄瓦间流淌着六百年的皇家气韵，胡同深处藏着最地道的市井生活。',
+        attractions: ['故宫博物院', '八达岭长城', '天坛公园', '颐和园', '天安门广场', '鸟巢'],
+        food: ['北京烤鸭', '炸酱面', '豆汁儿', '涮羊肉', '卤煮火烧'],
+        emoji: '🏛️'
+    },
+    {
+        name: '上海', lat: 31.23, lng: 121.47,
+        badge: '📍 中国 · 上海',
+        desc: '魔都上海，国际化大都市。外滩万国建筑群与陆家嘴摩天大楼隔江相望，石库门里弄与新天地时尚街区交相辉映。',
+        attractions: ['外滩', '迪士尼乐园', '豫园', '东方明珠', '南京路步行街', '武康大楼'],
+        food: ['小笼包', '生煎包', '葱油拌面', '南翔小笼', '红烧肉'],
+        emoji: '🌃'
+    },
+    {
+        name: '云南', lat: 25.05, lng: 102.71,
+        badge: '📍 中国 · 云南',
+        desc: '七彩云南，风花雪月。苍山洱海畔的大理古城，玉龙雪山下的丽江古城，人间最后的净土香格里拉。',
+        attractions: ['大理古城', '丽江古城', '玉龙雪山', '香格里拉', '洱海', '石林'],
+        food: ['过桥米线', '汽锅鸡', '鲜花饼', '野生菌火锅', '烤乳扇'],
+        emoji: '🌸'
+    },
+    {
+        name: '西藏', lat: 29.65, lng: 91.12,
+        badge: '📍 中国 · 西藏',
+        desc: '雪域高原，世界屋脊。布达拉宫在阳光下闪耀金光，纳木错的湖水蓝如宝石，这里是离天空最近的地方。',
+        attractions: ['布达拉宫', '纳木错', '大昭寺', '羊卓雍措', '珠穆朗玛峰', '八廓街'],
+        food: ['酥油茶', '糌粑', '牦牛肉', '藏面', '甜茶'],
+        emoji: '🏔️'
+    },
+    {
+        name: '桂林', lat: 25.28, lng: 110.29,
+        badge: '📍 中国 · 桂林',
+        desc: '桂林山水甲天下。漓江两岸奇峰林立，象鼻山饮江而立，阳朔西街灯火阑珊。泛舟漓江，如在画中游。',
+        attractions: ['漓江', '阳朔西街', '象鼻山', '龙脊梯田', '十里画廊', '遇龙河'],
+        food: ['桂林米粉', '啤酒鱼', '螺蛳粉', '马蹄糕', '荔浦芋扣肉'],
+        emoji: '⛰️'
+    },
+    {
+        name: '成都', lat: 30.57, lng: 104.07,
+        badge: '📍 中国 · 成都',
+        desc: '天府之国，熊猫故乡。这座来了就不想走的城市，有最萌的大熊猫、最热的火锅、最悠闲的生活节奏。',
+        attractions: ['大熊猫基地', '宽窄巷子', '都江堰', '锦里古街', '武侯祠', '青城山'],
+        food: ['火锅', '串串香', '担担面', '龙抄手', '夫妻肺片'],
+        emoji: '🐼'
+    },
+    {
+        name: '杭州', lat: 30.27, lng: 120.15,
+        badge: '📍 中国 · 杭州',
+        desc: '人间天堂，西湖美景。断桥残雪、苏堤春晓、雷峰夕照，四季皆有不同韵味。茶香袅袅，江南韵味尽在其中。',
+        attractions: ['西湖', '灵隐寺', '雷峰塔', '千岛湖', '宋城', '西溪湿地'],
+        food: ['西湖醋鱼', '龙井虾仁', '东坡肉', '片儿川', '叫花鸡'],
+        emoji: '🏯'
+    },
+    {
+        name: '西安', lat: 34.34, lng: 108.94,
+        badge: '📍 中国 · 西安',
+        desc: '十三朝古都，千年历史沉淀。兵马俑守护着始皇帝的千年之梦，大雁塔见证着古丝绸之路的繁华。',
+        attractions: ['兵马俑', '华山', '大雁塔', '西安城墙', '钟鼓楼', '大唐不夜城'],
+        food: ['肉夹馍', '凉皮', '羊肉泡馍', '油泼面', '甑糕'],
+        emoji: '🏺'
+    },
+    {
+        name: '三亚', lat: 18.25, lng: 109.51,
+        badge: '📍 中国 · 三亚',
+        desc: '东方夏威夷，热带天堂。碧海蓝天、椰风海韵，亚龙湾的沙滩细腻如雪，蜈支洲岛的海水清澈见底。',
+        attractions: ['亚龙湾', '天涯海角', '蜈支洲岛', '南山寺', '椰梦长廊', '鹿回头'],
+        food: ['海鲜大餐', '文昌鸡', '椰子饭', '清补凉', '海南粉'],
+        emoji: '🏖️'
+    },
+    {
+        name: '东京', lat: 35.68, lng: 139.69,
+        badge: '📍 日本 · 东京',
+        desc: '传统与未来的交汇点。浅草寺的香火与涩谷的霓虹共存，银座的奢华与秋叶原的二次元世界各具魅力。',
+        attractions: ['浅草寺', '东京塔', '秋叶原', '银座', '新宿御苑', '涩谷十字路口'],
+        food: ['寿司', '拉面', '天妇罗', '和牛', '抹茶甜品'],
+        emoji: '🗼'
+    },
+    {
+        name: '巴黎', lat: 48.86, lng: 2.35,
+        badge: '📍 法国 · 巴黎',
+        desc: '浪漫之都，艺术殿堂。埃菲尔铁塔下拥吻的情侣，卢浮宫里蒙娜丽莎的微笑，塞纳河畔的咖啡馆飘着面包香。',
+        attractions: ['埃菲尔铁塔', '卢浮宫', '巴黎圣母院', '凯旋门', '凡尔赛宫', '塞纳河'],
+        food: ['法棍面包', '法式蜗牛', '马卡龙', '可颂', '奶酪拼盘'],
+        emoji: '🗼'
+    },
+    {
+        name: '纽约', lat: 40.71, lng: -74.01,
+        badge: '📍 美国 · 纽约',
+        desc: '不夜之城，世界的十字路口。时代广场的巨幕广告永不熄灭，中央公园是钢铁森林中的绿色呼吸。',
+        attractions: ['自由女神像', '时代广场', '中央公园', '布鲁克林大桥', '百老汇', '帝国大厦'],
+        food: ['纽约牛排', '纽约披萨', '热狗', '芝士蛋糕', '贝果'],
+        emoji: '🗽'
+    },
+    {
+        name: '悉尼', lat: -33.87, lng: 151.21,
+        badge: '📍 澳大利亚 · 悉尼',
+        desc: '南半球的阳光之城。悉尼歌剧院如贝壳般矗立在海湾，邦迪海滩的浪花与阳光让人忘却一切烦恼。',
+        attractions: ['悉尼歌剧院', '悉尼海港大桥', '邦迪海滩', '蓝山', '达令港', '塔龙加动物园'],
+        food: ['澳洲牛排', '海鲜拼盘', '肉派', '拉明顿蛋糕', '澳式咖啡'],
+        emoji: '🌊'
+    }
+];
+
+// ─── Scene Setup ───────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+camera.position.set(0, 0.8, 3.2);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.rotateSpeed = 0.5;
+controls.autoRotate = false;
+controls.minDistance = 1.8;
+controls.maxDistance = 6;
+controls.target.set(0, 0, 0);
+
+// ─── Earth ──────────────────────────────────────────────
+const EARTH_RADIUS = 1;
+const earthGroup = new THREE.Group();
+scene.add(earthGroup);
+
+const earthGeo = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
+const textureLoader = new THREE.TextureLoader();
+
+const earthMat = new THREE.MeshStandardMaterial({
+    roughness: 0.5,
+    metalness: 0.1,
+    color: 0x2233aa,
+});
+
+const earth = new THREE.Mesh(earthGeo, earthMat);
+earthGroup.add(earth);
+
+// Load texture
+const texUrl = 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
+textureLoader.load(texUrl, (tex) => {
+    earthMat.map = tex;
+    earthMat.color.set(0xffffff);
+    earthMat.needsUpdate = true;
+}, undefined, () => {
+    // Fallback: try another source
+    textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg', (tex) => {
+        earthMat.map = tex;
+        earthMat.color.set(0xffffff);
+        earthMat.needsUpdate = true;
+    });
+});
+
+// ─── Atmosphere ──────────────────────────────────────────
+const atmosMat = new THREE.ShaderMaterial({
+    vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+            vec3 viewDir = normalize(-vPosition);
+            float rim = 1.0 - max(0.0, dot(viewDir, vNormal));
+            float intensity = pow(rim, 3.0) * 0.6;
+            gl_FragColor = vec4(0.3, 0.8, 1.0, intensity);
+        }
+    `,
+    transparent: true,
+    side: THREE.FrontSide,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+});
+const atmosMesh = new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS * 1.02, 48, 48), atmosMat);
+earthGroup.add(atmosMesh);
+
+// ─── Stars ──────────────────────────────────────────────
+const starsGeo = new THREE.BufferGeometry();
+const starsCount = 6000;
+const starPos = new Float32Array(starsCount * 3);
+const starSizes = new Float32Array(starsCount);
+for (let i = 0; i < starsCount; i++) {
+    const r = 50 + Math.random() * 200;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    starPos[i * 3 + 1] = r * Math.cos(phi);
+    starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+    starSizes[i] = 0.5 + Math.random() * 1.5;
+}
+starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+starsGeo.setAttribute('size', new THREE.BufferAttribute(starSizes, 1));
+
+const starMat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.15,
+    transparent: true,
+    opacity: 0.8,
+    sizeAttenuation: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+});
+const stars = new THREE.Points(starsGeo, starMat);
+scene.add(stars);
+
+// ─── Lights ──────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0x334466, 0.6);
+scene.add(ambientLight);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+sunLight.position.set(5, 3, 5);
+scene.add(sunLight);
+
+const fillLight = new THREE.DirectionalLight(0x4488ff, 0.5);
+fillLight.position.set(-3, -1, -3);
+scene.add(fillLight);
+
+// ─── Markers ────────────────────────────────────────────
+const markers = [];
+const markerGroup = new THREE.Group();
+earthGroup.add(markerGroup);
+
+function latLngToVec3(lat, lng, radius) {
+    const phi = (90 - lat) * Math.PI / 180;
+    const theta = (lng + 180) * Math.PI / 180;
+    return new THREE.Vector3(
+        -radius * Math.sin(phi) * Math.cos(theta),
+        radius * Math.cos(phi),
+        radius * Math.sin(phi) * Math.sin(theta)
+    );
+}
+
+function createGlowTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.1, 'rgba(0,240,255,0.9)');
+    gradient.addColorStop(0.4, 'rgba(0,240,255,0.3)');
+    gradient.addColorStop(1, 'rgba(0,240,255,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(canvas);
+}
+
+const glowTex = createGlowTexture();
+const glowMat = new THREE.SpriteMaterial({
+    map: glowTex,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    opacity: 0.9,
+});
+
+const markerMeshes = [];
+
+LOCATIONS.forEach((loc) => {
+    const pos = latLngToVec3(loc.lat, loc.lng, EARTH_RADIUS);
+
+    // Core dot
+    const dotGeo = new THREE.SphereGeometry(0.018, 12, 12);
+    const dotMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const dot = new THREE.Mesh(dotGeo, dotMat);
+    dot.position.copy(pos);
+    markerGroup.add(dot);
+
+    // Glow sprite
+    const glow = new THREE.Sprite(glowMat.clone());
+    glow.position.copy(pos);
+    glow.scale.set(0.18, 0.18, 1);
+    glow.userData.baseScale = 0.18;
+    markerGroup.add(glow);
+
+    // Light pillar
+    const pillarPos = pos.clone().normalize().multiplyScalar(EARTH_RADIUS + 0.01);
+    const pillarEnd = pos.clone().normalize().multiplyScalar(EARTH_RADIUS + 0.06);
+    const pillarGeo = new THREE.BufferGeometry().setFromPoints([
+        pillarPos, pillarEnd
+    ]);
+    const pillarMat = new THREE.LineBasicMaterial({
+        color: 0x00f0ff,
+        transparent: true,
+        opacity: 0.3,
+    });
+    const pillar = new THREE.Line(pillarGeo, pillarMat);
+    markerGroup.add(pillar);
+
+    // Ring (pulsing)
+    const ringGeo = new THREE.RingGeometry(0.025, 0.04, 24);
+    const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x00f0ff,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.copy(pos);
+    ring.lookAt(new THREE.Vector3(0, 0, 0));
+    markerGroup.add(ring);
+
+    const markerData = {
+        data: loc,
+        position: pos.clone(),
+        dot,
+        glow,
+        pillar,
+        ring,
+        ringMat,
+        animPhase: Math.random() * Math.PI * 2,
+    };
+    markers.push(markerData);
+    markerMeshes.push(dot);
+});
+
+// ─── Raycaster ──────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let hoveredMarker = null;
+let selectedMarker = null;
+let isPointerDown = false;
+let pointerMoved = false;
+let pointerDownPos = { x: 0, y: 0 };
+
+function getMarkerIntersects(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(markerMeshes);
+    if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        return markers.find(m => m.dot === hit) || null;
+    }
+    return null;
+}
+
+function onPointerDown(event) {
+    isPointerDown = true;
+    pointerMoved = false;
+    pointerDownPos.x = event.clientX;
+    pointerDownPos.y = event.clientY;
+}
+
+function onPointerMove(event) {
+    if (isPointerDown) {
+        const dx = event.clientX - pointerDownPos.x;
+        const dy = event.clientY - pointerDownPos.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 5) {
+            pointerMoved = true;
+        }
+    }
+
+    const hit = getMarkerIntersects(event);
+    const tooltip = document.getElementById('tooltip');
+    const tooltipName = document.getElementById('tooltipName');
+    const tooltipSub = document.getElementById('tooltipSub');
+
+    if (hit && selectedMarker !== hit) {
+        document.body.style.cursor = 'pointer';
+        tooltipName.textContent = hit.data.emoji + ' ' + hit.data.name;
+        tooltipSub.textContent = hit.data.badge.replace('📍 ', '');
+        tooltip.style.left = (event.clientX + 16) + 'px';
+        tooltip.style.top = (event.clientY - 10) + 'px';
+        tooltip.classList.add('visible');
+
+        if (hoveredMarker && hoveredMarker !== hit) {
+            resetMarkerStyle(hoveredMarker);
+        }
+        hoveredMarker = hit;
+        highlightMarker(hit);
+    } else {
+        document.body.style.cursor = 'default';
+        tooltip.classList.remove('visible');
+        if (hoveredMarker && hoveredMarker !== selectedMarker) {
+            resetMarkerStyle(hoveredMarker);
+        }
+        hoveredMarker = null;
+    }
+}
+
+function onPointerUp(event) {
+    if (!pointerMoved) {
+        const hit = getMarkerIntersects(event);
+        if (hit) {
+            selectLocation(hit);
+        } else if (selectedMarker) {
+            closePanel();
+        }
+    }
+    isPointerDown = false;
+}
+
+function highlightMarker(marker) {
+    marker.glow.material.opacity = 1;
+    marker.glow.scale.set(0.3, 0.3, 1);
+    marker.dot.material.color.setHex(0xffffff);
+    marker.pillar.material.opacity = 0.8;
+}
+
+function resetMarkerStyle(marker) {
+    marker.glow.material.opacity = 0.9;
+    marker.glow.scale.set(marker.glow.userData.baseScale || 0.18, marker.glow.userData.baseScale || 0.18, 1);
+    marker.dot.material.color.setHex(0x00f0ff);
+    marker.pillar.material.opacity = 0.3;
+}
+
+// ─── Events ──────────────────────────────────────────────
+renderer.domElement.addEventListener('pointerdown', onPointerDown);
+renderer.domElement.addEventListener('pointermove', onPointerMove);
+renderer.domElement.addEventListener('pointerup', onPointerUp);
+renderer.domElement.addEventListener('pointerleave', () => {
+    document.getElementById('tooltip').classList.remove('visible');
+    if (hoveredMarker && hoveredMarker !== selectedMarker) {
+        resetMarkerStyle(hoveredMarker);
+    }
+    hoveredMarker = null;
+    isPointerDown = false;
+});
+
+// Touch support
+renderer.domElement.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        onPointerDown({ clientX: touch.clientX, clientY: touch.clientY });
+    }
+}, { passive: true });
+
+renderer.domElement.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        pointerMoved = true;
+    }
+}, { passive: true });
+
+renderer.domElement.addEventListener('touchend', (e) => {
+    if (!pointerMoved) {
+        const touch = e.changedTouches[0];
+        onPointerUp({ clientX: touch.clientX, clientY: touch.clientY });
+    }
+    isPointerDown = false;
+}, { passive: true });
+
+// ─── Panel ──────────────────────────────────────────────
+function selectLocation(marker) {
+    const loc = marker.data;
+
+    // Reset previous selection
+    if (selectedMarker && selectedMarker !== marker) {
+        resetMarkerStyle(selectedMarker);
+    }
+    selectedMarker = marker;
+    highlightMarker(marker);
+
+    // Populate panel
+    document.getElementById('panelBadge').textContent = loc.badge;
+    document.getElementById('panelTitle').textContent = loc.emoji + ' ' + loc.name;
+    document.getElementById('panelDesc').textContent = loc.desc;
+
+    const gallery = document.getElementById('panelGallery');
+    gallery.innerHTML = '';
+    loc.attractions.slice(0, 4).forEach((attr, i) => {
+        const div = document.createElement('div');
+        div.className = 'gallery-item';
+        const icons = ['🏯', '🏔️', '🌊', '🌺', '🏛️', '🎋', '🏝️', '🏰'];
+        div.innerHTML = `<span>${icons[i % icons.length]} ${attr}</span>`;
+        gallery.appendChild(div);
+    });
+
+    const attractionsList = document.getElementById('panelAttractions');
+    attractionsList.innerHTML = '';
+    loc.attractions.forEach(a => {
+        const li = document.createElement('li');
+        li.textContent = a;
+        attractionsList.appendChild(li);
+    });
+
+    const foodList = document.getElementById('panelFood');
+    foodList.innerHTML = '';
+    loc.food.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = f;
+        foodList.appendChild(li);
+    });
+
+    document.getElementById('infoPanel').classList.add('open');
+    controls.autoRotate = false;
+    document.getElementById('tooltip').classList.remove('visible');
+}
+
+function closePanel() {
+    if (selectedMarker) {
+        resetMarkerStyle(selectedMarker);
+        selectedMarker = null;
+    }
+    document.getElementById('infoPanel').classList.remove('open');
+}
+
+document.getElementById('panelClose').addEventListener('click', closePanel);
+
+// Close panel on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePanel();
+});
+
+// ─── Resize ──────────────────────────────────────────────
+function onResize() {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+// ─── Animation ──────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    // Animate markers
+    markers.forEach((m, i) => {
+        const phase = m.animPhase + t * 1.5;
+        // Pulse glow
+        const pulse = 1 + 0.15 * Math.sin(phase);
+        m.glow.scale.set(
+            m.glow.userData.baseScale * pulse,
+            m.glow.userData.baseScale * pulse,
+            1
+        );
+        // Pulse ring
+        const ringScale = 1 + 0.6 * Math.sin(phase);
+        m.ring.scale.set(ringScale, ringScale, 1);
+        m.ringMat.opacity = 0.5 * (1 - 0.5 * Math.sin(phase));
+    });
+
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+// ─── Start ──────────────────────────────────────────────
+const loading = document.getElementById('loading');
+// Show for at least 0.8s for smooth transition
+setTimeout(() => {
+    loading.classList.add('hidden');
+    setTimeout(() => loading.style.display = 'none', 800);
+}, 600);
+
+animate();
+
+console.log('🌍 探索世界已加载 · 点击光点探索目的地');
+</script>
+
 </body>
 </html>
