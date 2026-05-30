@@ -41,6 +41,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /aistudio
+            curl -sO https://raw.githubusercontent.com/xiaoyao-eric/aistudio/master/docker-compose.yml
             docker compose pull
             docker compose down
             docker compose up -d
