@@ -5,4 +5,9 @@ services:
     container_name: aistudio
     ports:
       - "5002:5002"
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
     restart: unless-stopped
