@@ -10,16 +10,18 @@ app = Flask(__name__, instance_relative_config=True)
 # 启用CORS
 CORS(app)
 
-# 数据库连接 — 优先使用 DATABASE_URL 环境变量，默认 SQLite
-DB_URI = os.environ.get('DATABASE_URL')
-if DB_URI is None:
-    DB_URI = 'sqlite:///' + os.path.join(os.path.dirname(os.path.dirname(__file__)), 'app.db')
+# 数据库连接 — 敏感信息从环境变量读取，避免硬编码
+DB_USER = os.environ.get('DB_USER', 'root')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
+DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_NAME = os.environ.get('DB_NAME', 'omnieye')
 
-app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://{}:{}@{}/{}'.format(
+    DB_USER, DB_PASSWORD, DB_HOST, DB_NAME
+)
 
-# 如果配置了 MySQL，使用 pymysql 驱动
-if DB_URI and DB_URI.startswith('mysql'):
-    pymysql.install_as_MySQLdb()
+# 因MySQLDB不支持Python3，使用pymysql扩展库代替MySQLDB库
+pymysql.install_as_MySQLdb()
 
 # 初始化DB操作对象
 db = SQLAlchemy(app)
