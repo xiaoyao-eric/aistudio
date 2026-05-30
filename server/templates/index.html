@@ -548,16 +548,20 @@ const stars = new THREE.Points(starsGeo, starMat);
 scene.add(stars);
 
 // ─── Lights ──────────────────────────────────────────────
-const ambientLight = new THREE.AmbientLight(0x334466, 0.6);
+const ambientLight = new THREE.AmbientLight(0x8899cc, 1.2);
 scene.add(ambientLight);
 
-const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+const sunLight = new THREE.DirectionalLight(0xffffff, 0.6);
 sunLight.position.set(5, 3, 5);
 scene.add(sunLight);
 
-const fillLight = new THREE.DirectionalLight(0x4488ff, 0.5);
-fillLight.position.set(-3, -1, -3);
+const fillLight = new THREE.DirectionalLight(0x88ccff, 0.8);
+fillLight.position.set(-5, 0, -5);
 scene.add(fillLight);
+
+const backLight = new THREE.DirectionalLight(0x4488ff, 0.4);
+backLight.position.set(0, -3, 5);
+scene.add(backLight);
 
 // ─── Markers ────────────────────────────────────────────
 const markers = [];
