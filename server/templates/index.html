@@ -3,128 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>探索世界 - 3D 旅游地球</title>
+    <title>神州风物 · 中国旅游导览</title>
+
+    <!-- Fonts: refined, characterful choices -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            overflow: hidden;
-            background: #000a14;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-            color: #fff;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            display: block;
-            position: fixed;
-            top: 0;
-            left: 0;
+        /* ═══════════════════════════════════════════════════
+           CSS Variables — Forbidden Galaxy palette
+           ═══════════════════════════════════════════════════ */
+        :root {
+            --ink: #05070a;
+            --ink-light: #0a0e18;
+            --ink-panel: rgba(8, 12, 24, 0.88);
+            --gold: #c9a03a;
+            --gold-bright: #e8c45a;
+            --gold-dark: #8b6f3c;
+            --gold-glow: rgba(201, 160, 58, 0.3);
+            --cinnabar: #b83a3a;
+            --cinnabar-dark: #8a2a2a;
+            --jade: #3a8a6a;
+            --parchment: #f0e8d8;
+            --parchment-dim: #c8bca8;
+            --parchment-muted: #7a7060;
+            --panel-bg: rgba(10, 14, 26, 0.88);
+            --radius-sm: 4px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --font-display: 'Playfair Display', 'Noto Serif SC', serif;
+            --font-body: 'DM Sans', 'Noto Serif SC', 'PingFang SC', sans-serif;
+            --font-ui: 'DM Sans', 'PingFang SC', sans-serif;
+            --transition: 0.4s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        /* Loading */
+        /* ═══════════════════════════════════════════════════
+           Reset & Base
+           ═══════════════════════════════════════════════════ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body {
+            overflow: hidden;
+            background: var(--ink);
+            font-family: var(--font-body);
+            color: var(--parchment);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            cursor: none;
+        }
+
+        /* ─── Custom Cursor ───────────────────────────── */
+        #cursor-ring {
+            position: fixed;
+            width: 32px;
+            height: 32px;
+            border: 1.5px solid var(--gold);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, border-color 0.3s, background 0.3s;
+            mix-blend-mode: difference;
+        }
+        #cursor-ring.hover {
+            width: 48px;
+            height: 48px;
+            border-color: var(--gold-bright);
+            background: rgba(201, 160, 58, 0.08);
+        }
+        #cursor-dot {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: var(--gold-bright);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.15s, height 0.15s;
+        }
+        #cursor-dot.hover {
+            width: 6px;
+            height: 6px;
+        }
+        @media (hover: none) and (pointer: coarse) {
+            #cursor-ring, #cursor-dot { display: none; }
+            body { cursor: auto; }
+        }
+
+        /* ─── Canvas ──────────────────────────────────── */
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           Loading Screen — ink wash animation
+           ═══════════════════════════════════════════════════ */
         #loading {
             position: fixed;
             inset: 0;
+            z-index: 100;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: #000a14;
-            z-index: 100;
-            transition: opacity 0.8s ease;
+            background: var(--ink);
+            transition: opacity 1.2s ease, visibility 1.2s ease;
         }
         #loading.hidden {
             opacity: 0;
-            pointer-events: none;
+            visibility: hidden;
         }
-        #loading .spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid rgba(0, 240, 255, 0.15);
-            border-top-color: #00f0ff;
+
+        .loading-symbol {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 40px;
+        }
+        .loading-symbol .outer-ring {
+            position: absolute;
+            inset: 0;
+            border: 1px solid var(--gold-dark);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: load-ring 3s ease-in-out infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #loading p {
-            margin-top: 20px;
-            color: #94a3b8;
+        .loading-symbol .inner-ring {
+            position: absolute;
+            inset: 12px;
+            border: 1px solid var(--gold);
+            border-radius: 50%;
+            animation: load-ring 3s ease-in-out infinite reverse;
+        }
+        .loading-symbol .center-dot {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 6px; height: 6px;
+            background: var(--gold-bright);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px var(--gold-glow);
+        }
+        @keyframes load-ring {
+            0% { transform: rotate(0deg) scale(0.8); opacity: 0.3; }
+            50% { transform: rotate(180deg) scale(1); opacity: 1; }
+            100% { transform: rotate(360deg) scale(0.8); opacity: 0.3; }
+        }
+
+        .loading-text {
+            font-family: var(--font-display);
             font-size: 14px;
-            letter-spacing: 2px;
+            letter-spacing: 6px;
+            color: var(--parchment-dim);
+            font-weight: 400;
+            text-transform: uppercase;
         }
-
-        /* Header */
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 10;
-            padding: 24px 32px;
-            background: linear-gradient(180deg, rgba(0,10,20,0.8) 0%, transparent 100%);
-            pointer-events: none;
-            text-align: center;
+        .loading-text span {
+            display: inline-block;
+            animation: load-char 1.8s ease-in-out infinite;
         }
-        .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: 4px;
-            background: linear-gradient(135deg, #f1f5f9, #00f0ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .loading-text span:nth-child(1) { animation-delay: 0s; }
+        .loading-text span:nth-child(2) { animation-delay: 0.15s; }
+        .loading-text span:nth-child(3) { animation-delay: 0.3s; }
+        .loading-text span:nth-child(4) { animation-delay: 0.45s; }
+        @keyframes load-char {
+            0%, 100% { opacity: 0.3; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-4px); }
         }
-        .header p {
-            font-size: 13px;
-            color: rgba(148,163,184,0.8);
-            margin-top: 6px;
-            letter-spacing: 1px;
-        }
-
-        /* Hint */
-        .hint {
-            position: fixed;
-            bottom: 40px;
+        .loading-progress {
+            position: absolute;
+            bottom: 60px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 10;
-            font-size: 13px;
-            color: rgba(148,163,184,0.6);
-            letter-spacing: 1px;
-            animation: pulse-hint 3s ease-in-out infinite;
-            pointer-events: none;
-            white-space: nowrap;
+            width: 120px;
+            height: 1px;
+            background: rgba(201, 160, 58, 0.1);
+            overflow: hidden;
         }
-        @keyframes pulse-hint {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 1; }
+        .loading-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-bright));
+            transition: width 0.5s ease;
         }
 
-        /* ─── Right Sidebar ─────────────────────────────── */
+        /* ═══════════════════════════════════════════════════
+           Header — minimal, floating
+           ═══════════════════════════════════════════════════ */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 10;
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(5,7,10,0.6) 0%, transparent 100%);
+        }
+        .header-left {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+        .header-brand {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 3px;
+        }
+        .header-brand small {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--gold-dark);
+            letter-spacing: 2px;
+            margin-left: 6px;
+        }
+        .header-sub {
+            font-size: 12px;
+            color: var(--parchment-muted);
+            letter-spacing: 1px;
+            font-weight: 300;
+        }
+        @media (max-width: 640px) {
+            .header { padding: 14px 16px; }
+            .header-brand { font-size: 15px; }
+            .header-sub { display: none; }
+        }
+
+        /* ═══════════════════════════════════════════════════
+           Sidebar — lacquer box aesthetic
+           ═══════════════════════════════════════════════════ */
         #sidebar {
             position: fixed;
             top: 0;
             right: 0;
-            width: 360px;
+            width: 340px;
             height: 100vh;
             z-index: 15;
-            background: rgba(0, 12, 25, 0.92);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-left: 1px solid rgba(0, 240, 255, 0.08);
+            background: var(--panel-bg);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border-left: 1px solid rgba(201, 160, 58, 0.12);
             display: flex;
             flex-direction: column;
-            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-            box-shadow: -20px 0 60px rgba(0,0,0,0.5);
+            transition: transform var(--transition), box-shadow var(--transition);
+            box-shadow: -40px 0 80px rgba(0,0,0,0.6);
         }
         #sidebar.collapsed {
-            transform: translateX(360px);
+            transform: translateX(340px);
+            box-shadow: none;
+        }
+
+        /* Decorative top border */
+        #sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), var(--gold-bright), var(--gold), transparent);
+            opacity: 0.6;
         }
 
         .sidebar-header {
-            padding: 20px 20px 12px;
+            padding: 16px 20px 10px;
             flex-shrink: 0;
         }
         .sidebar-header-top {
@@ -134,48 +280,73 @@
             margin-bottom: 12px;
         }
         .sidebar-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #f1f5f9;
-            letter-spacing: 1px;
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gold);
+            letter-spacing: 2px;
         }
+        .sidebar-title-icon {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
         .sidebar-close-btn {
-            width: 32px; height: 32px;
-            border: none;
-            background: rgba(255,255,255,0.04);
-            border-radius: 8px;
-            color: #64748b;
-            font-size: 16px;
-            cursor: pointer;
+            width: 30px; height: 30px;
+            border: 1px solid rgba(201, 160, 58, 0.15);
+            background: transparent;
+            border-radius: var(--radius-sm);
+            color: var(--parchment-dim);
+            font-size: 14px;
+            cursor: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all 0.25s;
+            pointer-events: auto;
         }
         .sidebar-close-btn:hover {
-            background: rgba(255,255,255,0.08);
-            color: #f1f5f9;
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(201, 160, 58, 0.06);
         }
 
+        .sidebar-search {
+            position: relative;
+        }
         .sidebar-search input {
             width: 100%;
-            padding: 8px 12px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 8px;
-            color: #e2e8f0;
+            padding: 8px 12px 8px 34px;
+            background: rgba(201, 160, 58, 0.03);
+            border: 1px solid rgba(201, 160, 58, 0.08);
+            border-radius: var(--radius-sm);
+            color: var(--parchment);
             font-size: 13px;
+            font-family: var(--font-ui);
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.25s, background 0.25s;
+            cursor: none;
         }
-        .sidebar-search input::placeholder { color: #475569; }
+        .sidebar-search input::placeholder { color: rgba(122, 112, 96, 0.6); }
         .sidebar-search input:focus {
-            border-color: rgba(0,240,255,0.3);
+            border-color: rgba(201, 160, 58, 0.3);
+            background: rgba(201, 160, 58, 0.05);
+        }
+        .sidebar-search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--parchment-muted);
+            font-size: 12px;
+            opacity: 0.5;
+            pointer-events: none;
         }
 
         .sidebar-divider {
             height: 1px;
-            background: rgba(255,255,255,0.04);
+            margin: 0 20px;
+            background: linear-gradient(90deg, transparent, rgba(201, 160, 58, 0.15), transparent);
             flex-shrink: 0;
         }
 
@@ -185,156 +356,168 @@
             overflow-y: auto;
             overflow-x: hidden;
             padding: 4px 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(201, 160, 58, 0.15) transparent;
         }
-        .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+        .sidebar-scroll::-webkit-scrollbar { width: 2px; }
         .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.2); border-radius: 2px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(201, 160, 58, 0.2); border-radius: 1px; }
 
-        /* Tree items */
+        /* ─── Tree Items ──────────────────────────────── */
         .tree-item-header {
             display: flex;
             align-items: center;
-            padding: 9px 16px;
-            cursor: pointer;
-            transition: background 0.2s ease;
+            padding: 8px 16px 8px 20px;
+            cursor: none;
+            transition: background 0.25s ease;
             gap: 6px;
             position: relative;
+            pointer-events: auto;
         }
         .tree-item-header:hover {
-            background: rgba(0, 240, 255, 0.04);
+            background: rgba(201, 160, 58, 0.04);
         }
         .tree-item-header.active {
-            background: rgba(0, 240, 255, 0.08);
+            background: rgba(201, 160, 58, 0.08);
         }
         .tree-item-header.active .tree-label {
-            color: #00f0ff;
+            color: var(--gold-bright);
         }
-        .tree-item-header.active::before {
+        .tree-item-header.active::after {
             content: '';
             position: absolute;
             right: 0;
-            top: 4px;
-            bottom: 4px;
-            width: 3px;
-            background: #00f0ff;
-            border-radius: 2px 0 0 2px;
-            box-shadow: 0 0 8px rgba(0,240,255,0.4);
+            top: 3px;
+            bottom: 3px;
+            width: 2px;
+            background: var(--gold);
+            border-radius: 1px 0 0 1px;
+            box-shadow: -2px 0 12px rgba(201, 160, 58, 0.3);
         }
 
         .tree-toggle {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
-            color: #475569;
+            font-size: 8px;
+            color: var(--parchment-muted);
             flex-shrink: 0;
-            transition: transform 0.25s ease, color 0.25s ease;
+            transition: transform 0.3s ease, color 0.3s ease;
         }
         .tree-toggle.expanded {
             transform: rotate(90deg);
-            color: #00f0ff;
+            color: var(--gold);
         }
 
         .tree-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #e2e8f0;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--parchment-dim);
             flex: 1;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-
-        .province-type-badge {
-            font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(0,240,255,0.06);
-            color: rgba(0,240,255,0.5);
-            border: 1px solid rgba(0,240,255,0.08);
-            flex-shrink: 0;
             letter-spacing: 0.5px;
         }
 
-        .tree-item.province > .tree-item-header {
-            padding-left: 12px;
+        .province-type-badge {
+            font-size: 8px;
+            padding: 1px 5px;
+            border-radius: 2px;
+            background: rgba(201, 160, 58, 0.06);
+            color: var(--gold-dark);
+            border: 1px solid rgba(201, 160, 58, 0.08);
+            flex-shrink: 0;
+            letter-spacing: 0.5px;
+            font-family: var(--font-ui);
+            text-transform: uppercase;
         }
+
+        .tree-item.province > .tree-item-header {
+            padding-left: 16px;
+        }
+        .tree-item.province > .tree-item-header .tree-label {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
         .tree-children {
             overflow: hidden;
             max-height: 0;
-            transition: max-height 0.35s ease;
+            transition: max-height 0.4s ease;
         }
         .tree-children.expanded {
             max-height: 2000px;
         }
 
         .city-header {
-            padding-left: 46px;
+            padding-left: 52px !important;
         }
         .city-header .tree-label {
-            font-size: 13px;
-            font-weight: 400;
-            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 300;
+            color: var(--parchment-muted);
         }
         .city-header:hover .tree-label {
-            color: #cbd5e1;
+            color: var(--parchment-dim);
         }
         .city-header.active .tree-label {
-            color: #00f0ff;
+            color: var(--gold-bright);
         }
 
         .data-dot {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
-            background: rgba(0,240,255,0.15);
+            background: rgba(201, 160, 58, 0.12);
             flex-shrink: 0;
         }
         .data-dot.active {
-            background: #00f0ff;
-            box-shadow: 0 0 6px rgba(0,240,255,0.6);
+            background: var(--gold);
+            box-shadow: 0 0 8px rgba(201, 160, 58, 0.4);
         }
 
         .sidebar-no-result {
             padding: 40px 20px;
             text-align: center;
-            color: #475569;
-            font-size: 14px;
+            color: var(--parchment-muted);
+            font-size: 13px;
+            opacity: 0.6;
         }
 
-        /* ─── Info area (bottom of sidebar) ─────────────── */
-        /* Sidebar toggle button */
+        /* ─── Sidebar Toggle ──────────────────────────── */
         #sidebarToggle {
             position: fixed;
-            top: 20px;
+            top: 18px;
             right: 16px;
             z-index: 20;
-            width: 38px;
-            height: 38px;
-            border: 1px solid rgba(0,240,255,0.12);
-            background: rgba(0,12,25,0.8);
-            backdrop-filter: blur(12px);
-            border-radius: 10px;
-            color: #94a3b8;
-            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border: 1px solid rgba(201, 160, 58, 0.12);
+            background: rgba(5, 7, 10, 0.7);
+            backdrop-filter: blur(16px);
+            border-radius: var(--radius-sm);
+            color: var(--parchment-dim);
+            cursor: none;
             display: none;
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
             padding: 0;
+            pointer-events: auto;
         }
         #sidebarToggle:hover {
-            border-color: rgba(0,240,255,0.3);
-            color: #00f0ff;
+            border-color: rgba(201, 160, 58, 0.3);
+            color: var(--gold);
         }
         #sidebarToggle svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
         }
 
-        /* Overlay for mobile */
+        /* ─── Overlay ─────────────────────────────────── */
         #sidebarOverlay {
             position: fixed;
             inset: 0;
@@ -349,23 +532,222 @@
             pointer-events: auto;
         }
 
-        /* ─── Responsive ────────────────────────────────── */
+        /* ═══════════════════════════════════════════════════
+           Region Detail Card — scroll/calligraphy
+           ═══════════════════════════════════════════════════ */
+        #regionCard {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translate(-50%, 100%);
+            z-index: 12;
+            width: min(520px, calc(100vw - 32px));
+            max-height: min(420px, 45vh);
+            background: var(--panel-bg);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(201, 160, 58, 0.1);
+            border-bottom: none;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: 0;
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        #regionCard.visible {
+            transform: translate(-50%, 0);
+        }
+
+        /* Decorative top bar on card */
+        #regionCard::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 40px; right: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            opacity: 0.4;
+        }
+
+        .region-card-inner {
+            padding: 24px 24px 20px;
+            overflow-y: auto;
+            max-height: inherit;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(201, 160, 58, 0.1) transparent;
+        }
+        .region-card-inner::-webkit-scrollbar { width: 2px; }
+        .region-card-inner::-webkit-scrollbar-thumb { background: rgba(201, 160, 58, 0.15); }
+
+        .region-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .region-card-name-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .region-card-emoji {
+            font-size: 28px;
+            line-height: 1;
+        }
+        .region-card-name {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--parchment);
+            letter-spacing: 1px;
+        }
+        .region-card-badge {
+            font-size: 11px;
+            color: var(--gold-dark);
+            font-weight: 400;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+        .region-card-close {
+            width: 26px; height: 26px;
+            border: 1px solid rgba(201, 160, 58, 0.1);
+            background: transparent;
+            border-radius: var(--radius-sm);
+            color: var(--parchment-muted);
+            font-size: 12px;
+            cursor: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+            flex-shrink: 0;
+            pointer-events: auto;
+        }
+        .region-card-close:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .region-card-desc {
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--parchment-dim);
+            margin-bottom: 14px;
+            font-weight: 300;
+            letter-spacing: 0.3px;
+        }
+
+        .region-card-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .region-card-section h4 {
+            font-family: var(--font-display);
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold-dark);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .region-card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .region-card-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: rgba(201, 160, 58, 0.06);
+            border: 1px solid rgba(201, 160, 58, 0.08);
+            border-radius: 2px;
+            color: var(--parchment-dim);
+            font-weight: 300;
+            letter-spacing: 0.3px;
+            font-family: var(--font-body);
+        }
+
+        @media (max-width: 480px) {
+            #regionCard { width: calc(100vw - 16px); }
+            .region-card-inner { padding: 18px 16px 16px; }
+            .region-card-name { font-size: 18px; }
+            .region-card-sections { grid-template-columns: 1fr; }
+        }
+
+        /* ═══════════════════════════════════════════════════
+           Hint text
+           ═══════════════════════════════════════════════════ */
+        .hint {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            font-size: 12px;
+            color: rgba(122, 112, 96, 0.5);
+            letter-spacing: 2px;
+            font-weight: 300;
+            font-family: var(--font-ui);
+            pointer-events: none;
+            white-space: nowrap;
+            animation: hint-pulse 4s ease-in-out infinite;
+        }
+        @keyframes hint-pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+        @media (max-width: 640px) {
+            .hint { font-size: 10px; bottom: 18px; }
+        }
+
+        /* ═══════════════════════════════════════════════════
+           Marker Legend
+           ═══════════════════════════════════════════════════ */
+        .legend {
+            position: fixed;
+            bottom: 60px;
+            left: 20px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            pointer-events: none;
+            opacity: 0.6;
+            transition: opacity 0.4s;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-family: var(--font-ui);
+            color: var(--parchment-dim);
+            letter-spacing: 0.5px;
+        }
+        .legend-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #e8c45a;
+            box-shadow: 0 0 6px rgba(232, 196, 90, 0.5);
+        }
+        @media (max-width: 640px) {
+            .legend { display: none; }
+        }
+
+        /* ═══════════════════════════════════════════════════
+           Responsive
+           ═══════════════════════════════════════════════════ */
         @media (min-width: 769px) {
-            #sidebar:not(.collapsed) {
-                transform: translateX(0);
-            }
-            #sidebar.collapsed ~ #sidebarToggle {
-                display: flex;
-            }
-            #sidebar:not(.collapsed) ~ #sidebarToggle {
-                display: none;
-            }
+            #sidebar:not(.collapsed) { transform: translateX(0); }
+            #sidebar.collapsed ~ #sidebarToggle { display: flex; }
+            #sidebar:not(.collapsed) ~ #sidebarToggle { display: none; }
             #sidebarOverlay { display: none; }
         }
         @media (max-width: 768px) {
             #sidebar {
-                width: 320px;
-                max-width: 85vw;
+                width: 300px;
+                max-width: 80vw;
                 transform: translateX(100%);
             }
             #sidebar.mobile-open { transform: translateX(0); }
@@ -373,629 +755,1059 @@
             #sidebar.collapsed ~ #sidebarToggle,
             #sidebar.mobile-open ~ #sidebarToggle { display: none; }
         }
-        @media (max-width: 640px) {
-            .header h1 { font-size: 18px; }
-            .header p { font-size: 12px; }
-            .hint { font-size: 11px; bottom: 24px; }
-        }
     </style>
 </head>
 <body>
 
-<div id="loading">
-    <div class="spinner"></div>
-    <p>加载地球...</p>
-</div>
+    <!-- ═══════════════════════════════════════════════════
+         Custom Cursor
+         ═══════════════════════════════════════════════════ -->
+    <div id="cursor-ring"></div>
+    <div id="cursor-dot"></div>
 
-<div id="canvas-container"></div>
-
-<div class="header">
-    <h1>✦ 探索世界</h1>
-    <p>从右侧导航选择目的地</p>
-</div>
-
-<div class="hint">🖱 拖拽旋转 · 侧栏选择目的地</div>
-
-<!-- Sidebar toggle -->
-<button id="sidebarToggle" aria-label="展开导航">
-    <svg viewBox="0 0 20 20" fill="none">
-        <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-</button>
-
-<!-- Sidebar overlay -->
-<div id="sidebarOverlay"></div>
-
-<!-- Right sidebar -->
-<div id="sidebar">
-    <div class="sidebar-header">
-        <div class="sidebar-header-top">
-            <h2 class="sidebar-title">🗺️ 中国行政区划</h2>
-            <button id="sidebarClose" class="sidebar-close-btn" aria-label="收起导航">✕</button>
+    <!-- ═══════════════════════════════════════════════════
+         Loading Screen
+         ═══════════════════════════════════════════════════ -->
+    <div id="loading">
+        <div class="loading-symbol">
+            <div class="outer-ring"></div>
+            <div class="inner-ring"></div>
+            <div class="center-dot"></div>
         </div>
-        <div class="sidebar-search">
-            <input type="text" id="searchInput" placeholder="搜索省份/城市..." />
+        <div class="loading-text">
+            <span>载</span><span>入</span><span>星</span><span>图</span>
+        </div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loadingBar"></div>
         </div>
     </div>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-scroll" id="sidebarScroll"></div>
-</div>
 
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    <!-- ═══════════════════════════════════════════════════
+         3D Canvas
+         ═══════════════════════════════════════════════════ -->
+    <div id="canvas-container"></div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Header
+         ═══════════════════════════════════════════════════ -->
+    <header class="header">
+        <div class="header-left">
+            <div class="header-brand">
+                神州风物
+                <small>· 旅游导览</small>
+            </div>
+            <span class="header-sub">中国 · 山川风物 · 地理地貌</span>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════
+         Hint
+         ═══════════════════════════════════════════════════ -->
+    <div class="hint">✦ 拖拽旋转地球 · 从右侧星图选择目的地</div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Legend
+         ═══════════════════════════════════════════════════ -->
+    <div class="legend">
+        <div class="legend-item">
+            <span class="legend-dot"></span>
+            <span>热门旅游目的地</span>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Sidebar Toggle
+         ═══════════════════════════════════════════════════ -->
+    <button id="sidebarToggle" aria-label="展开星图">
+        <svg viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+    </button>
+
+    <!-- ═══════════════════════════════════════════════════
+         Sidebar Overlay
+         ═══════════════════════════════════════════════════ -->
+    <div id="sidebarOverlay"></div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Sidebar
+         ═══════════════════════════════════════════════════ -->
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-header-top">
+                <h2 class="sidebar-title">
+                    <span class="sidebar-title-icon">🗺</span>
+                    神州 · 省府
+                </h2>
+                <button id="sidebarClose" class="sidebar-close-btn" aria-label="收起星图">✕</button>
+            </div>
+            <div class="sidebar-search">
+                <span class="sidebar-search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="搜索省份 / 城市..." />
+            </div>
+        </div>
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-scroll" id="sidebarScroll">
+            <div class="sidebar-no-result">加载中…</div>
+        </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════════
+         Region Detail Card
+         ═══════════════════════════════════════════════════ -->
+    <div id="regionCard">
+        <div class="region-card-inner" id="regionCardInner">
+            <!-- populated dynamically -->
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Three.js via importmap
+         ═══════════════════════════════════════════════════ -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
     }
-}
-</script>
+    </script>
 
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// ─── Scene Setup ───────────────────────────────────────
-const container = document.getElementById('canvas-container');
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-camera.position.set(0, 0.8, 3.2);
+    /* ──────────────────────────────────────────────────────
+       Custom Cursor
+       ────────────────────────────────────────────────────── */
+    const ring = document.getElementById('cursor-ring');
+    const dot = document.getElementById('cursor-dot');
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
-container.appendChild(renderer.domElement);
+    let mouseX = -200, mouseY = -200;
+    let ringX = -200, ringY = -200;
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.rotateSpeed = 0.5;
-controls.autoRotate = false;
-controls.minDistance = 1.8;
-controls.maxDistance = 6;
-controls.target.set(0, 0, 0);
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        dot.style.left = mouseX + 'px';
+        dot.style.top = mouseY + 'px';
+    });
 
-// ─── Earth ──────────────────────────────────────────────
-const EARTH_RADIUS = 1;
-const earthGroup = new THREE.Group();
-scene.add(earthGroup);
+    function animateCursor() {
+        ringX += (mouseX - ringX) * 0.12;
+        ringY += (mouseY - ringY) * 0.12;
+        ring.style.left = ringX + 'px';
+        ring.style.top = ringY + 'px';
+        requestAnimationFrame(animateCursor);
+    }
+    animateCursor();
 
-const earthGeo = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
-const textureLoader = new THREE.TextureLoader();
+    // Hover effect on clickable elements
+    document.querySelectorAll('a, button, input, .tree-item-header, .region-card-close, #sidebarToggle').forEach(el => {
+        el.addEventListener('mouseenter', () => { ring.classList.add('hover'); dot.classList.add('hover'); });
+        el.addEventListener('mouseleave', () => { ring.classList.remove('hover'); dot.classList.remove('hover'); });
+    });
 
-const earthMat = new THREE.MeshStandardMaterial({
-    roughness: 0.5,
-    metalness: 0.1,
-    color: 0x2233aa,
-});
+    // Also apply to dynamically created tree items
+    const sidebarScroll = document.getElementById('sidebarScroll');
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('.tree-item-header').forEach(el => {
+            if (!el.dataset.cursorBound) {
+                el.dataset.cursorBound = '1';
+                el.addEventListener('mouseenter', () => { ring.classList.add('hover'); dot.classList.add('hover'); });
+                el.addEventListener('mouseleave', () => { ring.classList.remove('hover'); dot.classList.remove('hover'); });
+            }
+        });
+    });
+    observer.observe(sidebarScroll, { childList: true, subtree: true });
 
-const earth = new THREE.Mesh(earthGeo, earthMat);
-earthGroup.add(earth);
+    /* ──────────────────────────────────────────────────────
+       Loading bar simulation
+       ────────────────────────────────────────────────────── */
+    const loadingBar = document.getElementById('loadingBar');
+    let loadingProgress = 0;
+    const loadInterval = setInterval(() => {
+        loadingProgress += Math.random() * 15 + 5;
+        if (loadingProgress > 95) loadingProgress = 95;
+        loadingBar.style.width = loadingProgress + '%';
+    }, 400);
 
-const texUrl = 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg';
-textureLoader.load(texUrl, (tex) => {
-    earthMat.map = tex;
-    earthMat.color.set(0xffffff);
-    earthMat.needsUpdate = true;
-}, undefined, () => {
-    textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg', (tex) => {
+    /* ──────────────────────────────────────────────────────
+       Three.js Scene Setup
+       ────────────────────────────────────────────────────── */
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 0.6, 3.0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.rotateSpeed = 0.4;
+    controls.autoRotate = false;
+    controls.minDistance = 1.8;
+    controls.maxDistance = 6;
+    controls.target.set(0, 0, 0);
+
+    /* ──────────────────────────────────────────────────────
+       Earth
+       ────────────────────────────────────────────────────── */
+    const EARTH_RADIUS = 1;
+    const earthGroup = new THREE.Group();
+    scene.add(earthGroup);
+
+    const earthGeo = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
+    const textureLoader = new THREE.TextureLoader();
+
+    const earthMat = new THREE.MeshStandardMaterial({
+        roughness: 0.4,
+        metalness: 0.1,
+        color: 0x1a2a4a,
+    });
+
+    const earth = new THREE.Mesh(earthGeo, earthMat);
+    earthGroup.add(earth);
+
+    // Load textures: base color, bump map (terrain relief), normal map
+    const texUrl = 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg';
+    textureLoader.load(texUrl, (tex) => {
         earthMat.map = tex;
         earthMat.color.set(0xffffff);
         earthMat.needsUpdate = true;
+    }, undefined, () => {
+        textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg', (tex) => {
+            earthMat.map = tex;
+            earthMat.color.set(0xffffff);
+            earthMat.needsUpdate = true;
+        });
     });
-});
 
-// ─── Atmosphere ──────────────────────────────────────────
-const atmosMat = new THREE.ShaderMaterial({
-    vertexShader: `
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // Bump map for 3D terrain relief (mountains, valleys visibly pop out)
+    textureLoader.load('https://unpkg.com/three-globe/example/img/earth-topology.png', (tex) => {
+        earthMat.bumpMap = tex;
+        earthMat.bumpScale = 0.04;
+        earthMat.needsUpdate = true;
+    }, undefined, () => {
+        // Fallback: use normal map for terrain detail
+        textureLoader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg', (tex) => {
+            earthMat.normalMap = tex;
+            earthMat.normalScale = new THREE.Vector2(0.8, 0.8);
+            earthMat.needsUpdate = true;
+        });
+    });
+
+    /* ──────────────────────────────────────────────────────
+       Atmosphere — warm golden glow
+       ────────────────────────────────────────────────────── */
+    const atmosMat = new THREE.ShaderMaterial({
+        vertexShader: `
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            void main() {
+                vec3 viewDir = normalize(-vPosition);
+                float rim = 1.0 - max(0.0, dot(viewDir, vNormal));
+                float intensity = pow(rim, 3.0) * 0.5;
+                // Warm gold atmosphere
+                vec3 gold = vec3(0.78, 0.63, 0.23);
+                gl_FragColor = vec4(gold, intensity * 0.7);
+            }
+        `,
+        transparent: true,
+        side: THREE.FrontSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+    });
+    const atmosMesh = new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS * 1.025, 48, 48), atmosMat);
+    earthGroup.add(atmosMesh);
+
+    // Secondary outer glow
+    const glowMat = new THREE.ShaderMaterial({
+        vertexShader: `
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            void main() {
+                vec3 viewDir = normalize(-vPosition);
+                float rim = 1.0 - max(0.0, dot(viewDir, vNormal));
+                float intensity = pow(rim, 4.0) * 0.3;
+                gl_FragColor = vec4(0.5, 0.35, 0.1, intensity);
+            }
+        `,
+        transparent: true,
+        side: THREE.FrontSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+    });
+    const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS * 1.06, 32, 32), glowMat);
+    earthGroup.add(glowMesh);
+
+    /* ──────────────────────────────────────────────────────
+       Stars — layered for depth
+       ────────────────────────────────────────────────────── */
+    function createStarField(count, spread, size, color, opacity) {
+        const geo = new THREE.BufferGeometry();
+        const pos = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            const r = spread * 0.3 + Math.random() * spread * 0.7;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            pos[i * 3 + 1] = r * Math.cos(phi);
+            pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
         }
-    `,
-    fragmentShader: `
-        varying vec3 vNormal;
-        varying vec3 vPosition;
-        void main() {
-            vec3 viewDir = normalize(-vPosition);
-            float rim = 1.0 - max(0.0, dot(viewDir, vNormal));
-            float intensity = pow(rim, 3.0) * 0.6;
-            gl_FragColor = vec4(0.3, 0.8, 1.0, intensity);
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        return new THREE.Points(geo, new THREE.PointsMaterial({
+            color, size, transparent: true, opacity,
+            sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false,
+        }));
+    }
+
+    // Background stars (cool white)
+    scene.add(createStarField(3000, 250, 0.12, 0xffffff, 0.6));
+    // Mid-layer stars (warm gold tint)
+    scene.add(createStarField(1000, 150, 0.2, 0xffdd88, 0.4));
+    // Bright foreground stars
+    scene.add(createStarField(400, 80, 0.3, 0xffcc66, 0.25));
+
+    /* ──────────────────────────────────────────────────────
+       Constellation-like random lines (subtle)
+       ────────────────────────────────────────────────────── */
+    function createConstellationLines() {
+        const group = new THREE.Group();
+        const lineMat = new THREE.LineBasicMaterial({
+            color: 0xc9a03a,
+            transparent: true,
+            opacity: 0.04,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+
+        for (let c = 0; c < 12; c++) {
+            const pointCount = 4 + Math.floor(Math.random() * 4);
+            const pts = [];
+            for (let i = 0; i < pointCount; i++) {
+                const r = 8 + Math.random() * 20;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pts.push(new THREE.Vector3(
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.cos(phi),
+                    r * Math.sin(phi) * Math.sin(theta)
+                ));
+            }
+            // Connect points with lines
+            for (let i = 0; i < pts.length - 1; i++) {
+                const geo = new THREE.BufferGeometry().setFromPoints([pts[i], pts[i + 1]]);
+                const line = new THREE.Line(geo, lineMat);
+                group.add(line);
+            }
         }
-    `,
-    transparent: true,
-    side: THREE.FrontSide,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-});
-const atmosMesh = new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS * 1.02, 48, 48), atmosMat);
-earthGroup.add(atmosMesh);
+        return group;
+    }
+    scene.add(createConstellationLines());
 
-// ─── Stars ──────────────────────────────────────────────
-const starsGeo = new THREE.BufferGeometry();
-const starsCount = 6000;
-const starPos = new Float32Array(starsCount * 3);
-for (let i = 0; i < starsCount; i++) {
-    const r = 50 + Math.random() * 200;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
-    starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-    starPos[i * 3 + 1] = r * Math.cos(phi);
-    starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-}
-starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    /* ──────────────────────────────────────────────────────
+       Lights — warm, dramatic
+       ────────────────────────────────────────────────────── */
+    scene.add(new THREE.AmbientLight(0x8899bb, 0.8));
+    const sunLight = new THREE.DirectionalLight(0xffeedd, 0.4);
+    sunLight.position.set(5, 3, 5);
+    scene.add(sunLight);
+    const fillLight = new THREE.DirectionalLight(0x99ccff, 0.6);
+    fillLight.position.set(-5, 0, -5);
+    scene.add(fillLight);
+    const keyLight = new THREE.DirectionalLight(0xffddaa, 0.3);
+    keyLight.position.set(0, 5, 3);
+    scene.add(keyLight);
 
-const stars = new THREE.Points(starsGeo, new THREE.PointsMaterial({
-    color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8,
-    sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false,
-}));
-scene.add(stars);
+    /* ──────────────────────────────────────────────────────
+       Coordinate Helpers
+       ────────────────────────────────────────────────────── */
+    function latLngToVec3(lat, lng, radius) {
+        const phi = (90 - lat) * Math.PI / 180;
+        const theta = (lng + 180) * Math.PI / 180;
+        return new THREE.Vector3(
+            -radius * Math.sin(phi) * Math.cos(theta),
+            radius * Math.cos(phi),
+            radius * Math.sin(phi) * Math.sin(theta)
+        );
+    }
 
-// ─── Lights ──────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x8899cc, 1.2));
-const sunLight = new THREE.DirectionalLight(0xffffff, 0.6);
-sunLight.position.set(5, 3, 5);
-scene.add(sunLight);
-const fillLight = new THREE.DirectionalLight(0x88ccff, 0.8);
-fillLight.position.set(-5, 0, -5);
-scene.add(fillLight);
-const backLight = new THREE.DirectionalLight(0x4488ff, 0.4);
-backLight.position.set(0, -3, 5);
-scene.add(backLight);
+    /* ──────────────────────────────────────────────────────
+       Province Borders
+       ────────────────────────────────────────────────────── */
+    const borderGroup = new THREE.Group();
+    earthGroup.add(borderGroup);
+    const borderMaterials = [];
+    const borderMaterialMap = {};
+    let selectedBorderMaterials = null;
 
-// ─── Helpers ──────────────────────────────────────────────
-function latLngToVec3(lat, lng, radius) {
-    const phi = (90 - lat) * Math.PI / 180;
-    const theta = (lng + 180) * Math.PI / 180;
-    return new THREE.Vector3(
-        -radius * Math.sin(phi) * Math.cos(theta),
-        radius * Math.cos(phi),
-        radius * Math.sin(phi) * Math.sin(theta)
-    );
-}
+    async function loadProvinceBorders() {
+        try {
+            const res = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
+            const geo = await res.json();
+            const R = EARTH_RADIUS * 1.003;
 
-// ─── Province Borders ─────────────────────────────────────
-const borderGroup = new THREE.Group();
-earthGroup.add(borderGroup);
-const borderMaterials = [];
-const borderMaterialMap = {}; // provName → [material, ...]
-let selectedBorderMaterials = null;
+            for (const feature of geo.features) {
+                const provName = feature.properties.name;
+                const coords = feature.geometry.coordinates;
+                const polygons = feature.geometry.type === 'MultiPolygon' ? coords : [coords];
+                const mats = [];
 
-async function loadProvinceBorders() {
-    try {
-        const res = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
-        const geo = await res.json();
-        const R = EARTH_RADIUS * 1.003;
+                for (const polygon of polygons) {
+                    const ring = polygon[0];
+                    if (!ring || ring.length < 3) continue;
 
-        for (const feature of geo.features) {
-            const provName = feature.properties.name;
+                    const pts = ring.map(([lng, lat]) => latLngToVec3(lat, lng, R));
+                    pts.push(pts[0].clone());
+
+                    const mat = new THREE.LineBasicMaterial({
+                        color: 0xc9a03a,
+                        transparent: true,
+                        opacity: 0.2,
+                        depthWrite: false,
+                    });
+                    borderGroup.add(new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints(pts), mat
+                    ));
+                    borderMaterials.push(mat);
+                    mats.push(mat);
+                }
+                borderMaterialMap[provName] = mats;
+            }
+        } catch (err) {
+            console.warn('⚠️ 省界加载失败:', err);
+        }
+    }
+
+    function highlightProvinceBorders(provinceName) {
+        for (const mat of borderMaterials) {
+            mat.opacity = 0.05;
+            mat.color.setHex(0xc9a03a);
+        }
+        if (provinceName && borderMaterialMap[provinceName]) {
+            selectedBorderMaterials = borderMaterialMap[provinceName];
+        } else {
+            selectedBorderMaterials = null;
+        }
+    }
+
+    function findProvinceName(data) {
+        if (!data) return null;
+        if (data.level === 'province') return data.name;
+        for (const prov of allRegions) {
+            if (prov.children && prov.children.some(c => c.id === data.id || c.name === data.name)) {
+                return prov.name;
+            }
+        }
+        return null;
+    }
+
+    /* ──────────────────────────────────────────────────────
+       China National Border — gold
+       ────────────────────────────────────────────────────── */
+    const chinaBorderGroup = new THREE.Group();
+    earthGroup.add(chinaBorderGroup);
+
+    async function loadChinaBorder() {
+        try {
+            const res = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json');
+            const geo = await res.json();
+            const feature = geo.features[0];
+            if (!feature) throw new Error('empty GeoJSON');
             const coords = feature.geometry.coordinates;
             const polygons = feature.geometry.type === 'MultiPolygon' ? coords : [coords];
-            const mats = [];
 
             for (const polygon of polygons) {
                 const ring = polygon[0];
                 if (!ring || ring.length < 3) continue;
 
-                const pts = ring.map(([lng, lat]) => latLngToVec3(lat, lng, R));
-                pts.push(pts[0].clone());
-
-                const mat = new THREE.LineBasicMaterial({
-                    color: 0x00ffff,
-                    transparent: true,
-                    opacity: 0.25,
-                    depthWrite: false,
-                });
-                borderGroup.add(new THREE.Line(
-                    new THREE.BufferGeometry().setFromPoints(pts), mat
-                ));
-                borderMaterials.push(mat);
-                mats.push(mat);
+                const layers = [
+                    { radius: 1.008, color: 0xc9a03a, opacity: 0.15 },
+                    { radius: 1.005, color: 0xc9a03a, opacity: 0.35 },
+                    { radius: 1.003, color: 0xe8c45a, opacity: 0.7 },
+                ];
+                for (const layer of layers) {
+                    const pts = ring.map(([lng, lat]) => latLngToVec3(lat, lng, layer.radius));
+                    pts.push(pts[0].clone());
+                    chinaBorderGroup.add(new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints(pts),
+                        new THREE.LineBasicMaterial({
+                            color: layer.color,
+                            transparent: true,
+                            opacity: layer.opacity,
+                            depthWrite: false,
+                        })
+                    ));
+                }
             }
-            borderMaterialMap[provName] = mats;
-        }
-        console.log(`✅ 加载省界: ${geo.features.length} 个省`);
-    } catch (err) {
-        console.warn('⚠️ 省界加载失败:', err);
-    }
-}
-
-function highlightProvinceBorders(provinceName) {
-    // Dim all borders
-    for (const mat of borderMaterials) {
-        mat.opacity = 0.08;
-    }
-    // Set selected for pulsing
-    if (provinceName && borderMaterialMap[provinceName]) {
-        selectedBorderMaterials = borderMaterialMap[provinceName];
-    } else {
-        selectedBorderMaterials = null;
-    }
-}
-
-function findProvinceName(data) {
-    if (!data) return null;
-    if (data.level === 'province') return data.name;
-    // City → find parent province
-    for (const prov of allRegions) {
-        if (prov.children && prov.children.some(c => c.id === data.id || c.name === data.name)) {
-            return prov.name;
+        } catch (err) {
+            console.warn('⚠️ 国界线加载失败:', err);
         }
     }
-    return null;
-}
 
-// ─── China National Border ─────────────────────────────────
-const chinaBorderGroup = new THREE.Group();
-earthGroup.add(chinaBorderGroup);
+    /* ──────────────────────────────────────────────────────
+       Scenic Spot Markers — glowing dots on tourist hotspots
+       ────────────────────────────────────────────────────── */
+    const scenicMarkerGroup = new THREE.Group();
+    earthGroup.add(scenicMarkerGroup);
+    const scenicMarkers = [];
 
-async function loadChinaBorder() {
-    try {
-        const res = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json');
-        const geo = await res.json();
-        const feature = geo.features[0];
-        if (!feature) throw new Error('empty GeoJSON');
-        const coords = feature.geometry.coordinates;
-        const polygons = feature.geometry.type === 'MultiPolygon' ? coords : [coords];
+    // Major tourist destinations across China (lat, lng, name)
+    const scenicSpots = [
+        // ── 首都/直辖市 ──
+        [39.90, 116.40, '北京'],
+        [31.23, 121.47, '上海'],
+        [39.13, 117.19, '天津'],
+        [29.56, 106.55, '重庆'],
+        // ── 东北 ──
+        [41.84, 123.43, '沈阳'],
+        [38.91, 121.62, '大连'],
+        [43.90, 125.32, '长春'],
+        [45.74, 126.66, '哈尔滨'],
+        [44.59, 129.59, '牡丹江'],
+        // ── 华北 ──
+        [38.05, 114.50, '石家庄'],
+        [37.87, 112.56, '太原'],
+        [40.08, 113.30, '大同'],
+        [40.82, 111.75, '呼和浩特'],
+        [49.20, 119.75, '呼伦贝尔'],
+        // ── 华东 ──
+        [36.67, 116.99, '济南'],
+        [36.07, 120.38, '青岛'],
+        [35.58, 116.99, '曲阜'],
+        [32.06, 118.80, '南京'],
+        [31.30, 120.58, '苏州'],
+        [30.27, 120.15, '杭州'],
+        [29.87, 121.55, '宁波'],
+        [31.82, 117.23, '合肥'],
+        [29.72, 118.34, '黄山'],
+        [26.07, 119.30, '福州'],
+        [24.48, 118.09, '厦门'],
+        [28.67, 115.89, '南昌'],
+        [29.66, 116.00, '九江'],
+        [34.75, 113.62, '郑州'],
+        [34.62, 112.45, '洛阳'],
+        [34.80, 114.35, '开封'],
+        // ── 华中 ──
+        [30.59, 114.31, '武汉'],
+        [28.23, 112.94, '长沙'],
+        [29.12, 110.48, '张家界'],
+        // ── 华南 ──
+        [23.13, 113.27, '广州'],
+        [22.54, 114.06, '深圳'],
+        [22.27, 113.57, '珠海'],
+        [22.82, 108.37, '南宁'],
+        [25.28, 110.29, '桂林'],
+        [20.02, 110.35, '海口'],
+        [18.25, 109.51, '三亚'],
+        [22.32, 114.17, '香港'],
+        [22.20, 113.54, '澳门'],
+        [23.70, 120.96, '台北'],
+        [25.03, 121.56, '台北市'],
+        // ── 西南 ──
+        [30.57, 104.07, '成都'],
+        [33.26, 104.24, '九寨沟'],
+        [29.55, 103.76, '乐山'],
+        [26.65, 106.63, '贵阳'],
+        [25.04, 102.71, '昆明'],
+        [25.59, 100.23, '大理'],
+        [26.87, 100.23, '丽江'],
+        [22.00, 100.80, '西双版纳'],
+        [29.65, 91.12, '拉萨'],
+        // ── 西北 ──
+        [34.34, 108.94, '西安'],
+        [36.06, 103.83, '兰州'],
+        [40.14, 94.66, '敦煌'],
+        [38.93, 100.45, '张掖'],
+        [36.62, 101.78, '西宁'],
+        [36.85, 100.75, '青海湖'],
+        [38.49, 106.23, '银川'],
+        [43.79, 87.63, '乌鲁木齐'],
+        [48.81, 87.04, '喀纳斯'],
+    ];
 
-        for (const polygon of polygons) {
-            const ring = polygon[0];
-            if (!ring || ring.length < 3) continue;
+    function createScenicMarker(lat, lng, name) {
+        const pos = latLngToVec3(lat, lng, EARTH_RADIUS * 1.005);
+        const group = new THREE.Group();
+        group.position.copy(pos);
 
-            // Thick layered border: outer glow, main line, inner glow
-            const layers = [
-                { radius: 1.008, color: 0x00ffff, opacity: 0.2 },
-                { radius: 1.005, color: 0x00ffff, opacity: 0.5 },
-                { radius: 1.003, color: 0x66ffff, opacity: 0.9 },
-            ];
-            for (const layer of layers) {
-                const pts = ring.map(([lng, lat]) => latLngToVec3(lat, lng, layer.radius));
-                pts.push(pts[0].clone());
-                chinaBorderGroup.add(new THREE.Line(
-                    new THREE.BufferGeometry().setFromPoints(pts),
-                    new THREE.LineBasicMaterial({
-                        color: layer.color,
-                        transparent: true,
-                        opacity: layer.opacity,
-                        depthWrite: false,
-                    })
-                ));
+        // Glowing dot
+        const dotGeo = new THREE.SphereGeometry(0.008, 8, 8);
+        const dotMat = new THREE.MeshBasicMaterial({
+            color: 0xe8c45a,
+            transparent: true,
+            opacity: 0.9,
+        });
+        const dot = new THREE.Mesh(dotGeo, dotMat);
+        group.add(dot);
+
+        // Outer glow ring
+        const ringGeo = new THREE.RingGeometry(0.012, 0.018, 16);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0xc9a03a,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.lookAt(0, 0, 0);
+        group.add(ring);
+
+        // Store for animation
+        scenicMarkers.push({ group, ring, dot, baseOpacity: 0.3 });
+
+        return group;
+    }
+
+    // Create all scenic markers
+    const markerColors = [0xe8c45a, 0xf0a030, 0x50c0e8, 0x80d050, 0xf06060];
+    for (let i = 0; i < scenicSpots.length; i++) {
+        const [lat, lng] = scenicSpots[i];
+        const marker = createScenicMarker(lat, lng, scenicSpots[i][2]);
+        scenicMarkerGroup.add(marker);
+    }
+
+    /* ──────────────────────────────────────────────────────
+       Fly-To Animation
+       ────────────────────────────────────────────────────── */
+    let flyState = null;
+
+    function flyTo(lat, lng, duration = 1200, targetDist = 2.5, callback = null) {
+        if (flyState) flyState = null;
+        const endTarget = latLngToVec3(lat, lng, 1);
+        const dist = Math.max(targetDist, 1.8);
+        const endCamPos = endTarget.clone().normalize().multiplyScalar(dist);
+
+        flyState = {
+            startTime: performance.now(),
+            duration,
+            startCamPos: camera.position.clone(),
+            endCamPos,
+            callback,
+        };
+        controls.enableDamping = false;
+        controls.enableRotate = false;
+        controls.autoRotate = false;
+    }
+
+    /* ──────────────────────────────────────────────────────
+       Region Detail Card
+       ────────────────────────────────────────────────────── */
+    const regionCard = document.getElementById('regionCard');
+    const regionCardInner = document.getElementById('regionCardInner');
+    let currentRegionData = null;
+
+    function showRegionCard(data) {
+        if (!data || (!data.description && !data.attractions && !data.food)) {
+            regionCard.classList.remove('visible');
+            currentRegionData = null;
+            return;
+        }
+
+        currentRegionData = data;
+        const emoji = data.emoji || '📍';
+        const badge = data.badge || '';
+        const desc = data.description || '';
+        const attractions = data.attractions || [];
+        const food = data.food || [];
+
+        let html = `
+            <div class="region-card-header">
+                <div>
+                    <div class="region-card-name-row">
+                        <span class="region-card-emoji">${emoji}</span>
+                        <span class="region-card-name">${data.name}</span>
+                    </div>
+                    ${badge ? `<div class="region-card-badge">${badge}</div>` : ''}
+                </div>
+                <button class="region-card-close" id="regionCardClose" aria-label="关闭">✕</button>
+            </div>
+            ${desc ? `<div class="region-card-desc">${desc}</div>` : ''}
+        `;
+
+        if (attractions.length > 0 || food.length > 0) {
+            html += '<div class="region-card-sections">';
+            if (attractions.length > 0) {
+                html += `<div class="region-card-section">
+                    <h4>✦ 名胜</h4>
+                    <div class="region-card-tags">
+                        ${attractions.map(a => `<span class="region-card-tag">${a}</span>`).join('')}
+                    </div>
+                </div>`;
             }
+            if (food.length > 0) {
+                html += `<div class="region-card-section">
+                    <h4>✦ 风物</h4>
+                    <div class="region-card-tags">
+                        ${food.map(f => `<span class="region-card-tag">${f}</span>`).join('')}
+                    </div>
+                </div>`;
+            }
+            html += '</div>';
         }
-        console.log('✅ 加载中国国界线');
-    } catch (err) {
-        console.warn('⚠️ 国界线加载失败:', err);
+
+        regionCardInner.innerHTML = html;
+
+        // Bind close button
+        const closeBtn = document.getElementById('regionCardClose');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                regionCard.classList.remove('visible');
+                currentRegionData = null;
+            });
+            closeBtn.addEventListener('mouseenter', () => { ring.classList.add('hover'); dot.classList.add('hover'); });
+            closeBtn.addEventListener('mouseleave', () => { ring.classList.remove('hover'); dot.classList.remove('hover'); });
+        }
+
+        regionCard.classList.add('visible');
     }
-}
 
-// ─── Fly To Animation ─────────────────────────────────────
-let flyState = null;
+    /* ──────────────────────────────────────────────────────
+       Sidebar
+       ────────────────────────────────────────────────────── */
+    let allRegions = [];
 
-function flyTo(lat, lng, duration = 1200, targetDist = 2.5, callback = null) {
-    if (flyState) {
-        flyState = null;
-    }
-    const endTarget = latLngToVec3(lat, lng, 1);
-    const dist = Math.max(targetDist, 1.8);
-    const endCamPos = endTarget.clone().normalize().multiplyScalar(dist);
+    function buildSidebar(regions, filter = '') {
+        const container = document.getElementById('sidebarScroll');
+        container.innerHTML = '';
 
-    flyState = {
-        startTime: performance.now(),
-        duration,
-        startCamPos: camera.position.clone(),
-        endCamPos,
-        callback,
-    };
-    controls.enableDamping = false;
-    controls.enableRotate = false;
-    controls.autoRotate = false;
-}
+        const q = filter.trim().toLowerCase();
+        let hasResult = false;
 
-// ─── Sidebar ──────────────────────────────────────────────
+        for (const prov of regions) {
+            if (q && !prov.name.includes(q) && !(prov.children || []).some(c => c.name.includes(q))) continue;
+            hasResult = true;
 
-// ─── Sidebar ──────────────────────────────────────────────
-let allRegions = [];
+            const div = document.createElement('div');
+            div.className = 'tree-item province';
 
-function buildSidebar(regions, filter = '') {
-    const container = document.getElementById('sidebarScroll');
-    container.innerHTML = '';
+            const header = document.createElement('div');
+            header.className = 'tree-item-header province-header';
+            header.dataset.lat = prov.lat;
+            header.dataset.lng = prov.lng;
+            header.dataset.regionId = prov.id;
 
-    const q = filter.trim().toLowerCase();
-    let hasResult = false;
+            const toggle = document.createElement('span');
+            toggle.className = 'tree-toggle';
+            toggle.textContent = '▶';
+            toggle.style.visibility = (prov.children && prov.children.length > 0) ? 'visible' : 'hidden';
 
-    for (const prov of regions) {
-        if (q && !prov.name.includes(q) && !(prov.children || []).some(c => c.name.includes(q))) continue;
-        hasResult = true;
+            const label = document.createElement('span');
+            label.className = 'tree-label';
+            label.textContent = prov.name;
 
-        const div = document.createElement('div');
-        div.className = 'tree-item province';
+            const badge = document.createElement('span');
+            badge.className = 'province-type-badge';
+            const tMap = { municipality: '直辖市', autonomous_region: '自治区', sar: '特区', province: '省' };
+            badge.textContent = tMap[prov.type] || '省';
 
-        // Header
-        const header = document.createElement('div');
-        header.className = 'tree-item-header province-header';
-        header.dataset.lat = prov.lat;
-        header.dataset.lng = prov.lng;
-        header.dataset.regionId = prov.id;
+            header.appendChild(toggle);
+            header.appendChild(label);
+            header.appendChild(badge);
+            div.appendChild(header);
 
-        const toggle = document.createElement('span');
-        toggle.className = 'tree-toggle';
-        toggle.textContent = '▶';
-        toggle.style.visibility = (prov.children && prov.children.length > 0) ? 'visible' : 'hidden';
+            if (prov.children && prov.children.length > 0) {
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = 'tree-children';
+                const filteredCities = q ? prov.children.filter(c => c.name.includes(q)) : prov.children;
 
-        const label = document.createElement('span');
-        label.className = 'tree-label';
-        label.textContent = prov.name;
+                for (const city of filteredCities) {
+                    const cityDiv = document.createElement('div');
+                    cityDiv.className = 'tree-item city';
 
-        const badge = document.createElement('span');
-        badge.className = 'province-type-badge';
-        const tMap = { municipality: '直辖市', autonomous_region: '自治区', sar: '特别行政区', province: '省' };
-        badge.textContent = tMap[prov.type] || '省';
+                    const cityHeader = document.createElement('div');
+                    cityHeader.className = 'tree-item-header city-header';
+                    cityHeader.dataset.lat = city.lat;
+                    cityHeader.dataset.lng = city.lng;
+                    cityHeader.dataset.regionId = city.id;
 
-        header.appendChild(toggle);
-        header.appendChild(label);
-        header.appendChild(badge);
-        div.appendChild(header);
+                    const cityLabel = document.createElement('span');
+                    cityLabel.className = 'tree-label';
+                    cityLabel.textContent = city.name;
+                    cityHeader.appendChild(cityLabel);
 
-        // Children
-        if (prov.children && prov.children.length > 0) {
-            const childrenDiv = document.createElement('div');
-            childrenDiv.className = 'tree-children';
+                    if (city.emoji) {
+                        const dot = document.createElement('span');
+                        dot.className = 'data-dot active';
+                        cityHeader.appendChild(dot);
+                    }
 
-            // Filter children if searching
-            const filteredCities = q ? prov.children.filter(c => c.name.includes(q)) : prov.children;
-            for (const city of filteredCities) {
-                const cityDiv = document.createElement('div');
-                cityDiv.className = 'tree-item city';
-
-                const cityHeader = document.createElement('div');
-                cityHeader.className = 'tree-item-header city-header';
-                cityHeader.dataset.lat = city.lat;
-                cityHeader.dataset.lng = city.lng;
-                cityHeader.dataset.regionId = city.id;
-
-                const cityLabel = document.createElement('span');
-                cityLabel.className = 'tree-label';
-                cityLabel.textContent = city.name;
-
-                cityHeader.appendChild(cityLabel);
-
-                if (city.emoji) {
-                    const dot = document.createElement('span');
-                    dot.className = 'data-dot active';
-                    cityHeader.appendChild(dot);
+                    cityDiv.appendChild(cityHeader);
+                    childrenDiv.appendChild(cityDiv);
                 }
 
-                cityDiv.appendChild(cityHeader);
-                childrenDiv.appendChild(cityDiv);
-            }
-
-            div.appendChild(childrenDiv);
-
-            // Auto-expand if searching
-            if (q) {
-                childrenDiv.classList.add('expanded');
-                toggle.classList.add('expanded');
-            }
-        }
-
-        container.appendChild(div);
-    }
-
-    if (!hasResult) {
-        container.innerHTML = '<div class="sidebar-no-result">未找到匹配的地区</div>';
-    }
-}
-
-function highlightSidebarItem(name) {
-    document.querySelectorAll('.tree-item-header.active').forEach(el => el.classList.remove('active'));
-    if (!name) return;
-    const q = `[data-region-id]`;
-    // Try matching by text content
-    const all = document.querySelectorAll('.tree-item-header');
-    for (const el of all) {
-        const label = el.querySelector('.tree-label');
-        if (label && label.textContent.trim() === name) {
-            el.classList.add('active');
-            // Expand parent province
-            const parent = el.closest('.tree-item.province');
-            if (parent) {
-                const children = parent.querySelector('.tree-children');
-                const toggle = parent.querySelector('.tree-toggle');
-                if (children && !children.classList.contains('expanded')) {
-                    children.classList.add('expanded');
+                div.appendChild(childrenDiv);
+                if (q) {
+                    childrenDiv.classList.add('expanded');
                     toggle.classList.add('expanded');
                 }
-                // Scroll into view
-                const scroll = document.getElementById('sidebarScroll');
-                const rect = el.getBoundingClientRect();
-                const srect = scroll.getBoundingClientRect();
-                if (rect.top < srect.top || rect.bottom > srect.bottom) {
-                    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+
+            container.appendChild(div);
+        }
+
+        if (!hasResult) {
+            container.innerHTML = '<div class="sidebar-no-result">未找到匹配的星域</div>';
+        }
+    }
+
+    function highlightSidebarItem(name) {
+        document.querySelectorAll('.tree-item-header.active').forEach(el => el.classList.remove('active'));
+        if (!name) return;
+        const all = document.querySelectorAll('.tree-item-header');
+        for (const el of all) {
+            const label = el.querySelector('.tree-label');
+            if (label && label.textContent.trim() === name) {
+                el.classList.add('active');
+                const parent = el.closest('.tree-item.province');
+                if (parent) {
+                    const children = parent.querySelector('.tree-children');
+                    const toggle = parent.querySelector('.tree-toggle');
+                    if (children && !children.classList.contains('expanded')) {
+                        children.classList.add('expanded');
+                        toggle.classList.add('expanded');
+                    }
+                    const scroll = document.getElementById('sidebarScroll');
+                    const rect = el.getBoundingClientRect();
+                    const srect = scroll.getBoundingClientRect();
+                    if (rect.top < srect.top || rect.bottom > srect.bottom) {
+                        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    function selectRegion(data, lat, lng) {
+        highlightSidebarItem(data ? data.name : '');
+        const provName = findProvinceName(data);
+        highlightProvinceBorders(provName);
+
+        const targetDist = (data && data.level === 'city') ? 1.0 : 1.9;
+        flyTo(lat, lng, 1200, targetDist);
+
+        // Show region card
+        showRegionCard(data);
+    }
+
+    /* ──────────────────────────────────────────────────────
+       Sidebar Events
+       ────────────────────────────────────────────────────── */
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('mobile-open');
+            document.getElementById('sidebarOverlay').classList.add('visible');
+        } else {
+            sidebar.classList.toggle('collapsed');
+        }
+    });
+
+    document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
+    document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
+    function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('mobile-open');
+            document.getElementById('sidebarOverlay').classList.remove('visible');
+        } else {
+            sidebar.classList.add('collapsed');
+        }
+    }
+
+    // Search
+    let searchTimer = null;
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            buildSidebar(allRegions, e.target.value);
+        }, 200);
+    });
+
+    // Tree click delegation
+    sidebarScroll.addEventListener('click', (e) => {
+        const header = e.target.closest('.tree-item-header');
+        if (!header) return;
+
+        const isProvince = header.classList.contains('province-header');
+        const clickedToggle = e.target.closest('.tree-toggle');
+
+        if (isProvince && clickedToggle) {
+            e.stopPropagation();
+            const provDiv = header.closest('.tree-item.province');
+            const children = provDiv.querySelector('.tree-children');
+            const toggle = provDiv.querySelector('.tree-toggle');
+            if (children) {
+                children.classList.toggle('expanded');
+                toggle.classList.toggle('expanded');
+            }
+            return;
+        }
+
+        const lat = parseFloat(header.dataset.lat);
+        const lng = parseFloat(header.dataset.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const regionId = parseInt(header.dataset.regionId);
+        let regionData = null;
+
+        function findInTree(arr) {
+            for (const r of arr) {
+                if (r.id === regionId) return r;
+                if (r.children) {
+                    const found = findInTree(r.children);
+                    if (found) return found;
                 }
             }
-            break;
+            return null;
         }
+        regionData = findInTree(allRegions);
+
+        if (window.innerWidth <= 768) closeSidebar();
+        selectRegion(regionData || { name: header.querySelector('.tree-label')?.textContent || '' }, lat, lng);
+    });
+
+    /* ──────────────────────────────────────────────────────
+       Resize
+       ────────────────────────────────────────────────────── */
+    function onResize() {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
     }
-}
+    window.addEventListener('resize', onResize);
 
-function selectRegion(data, lat, lng) {
-    highlightSidebarItem(data ? data.name : '');
+    /* ──────────────────────────────────────────────────────
+       Animation Loop
+       ────────────────────────────────────────────────────── */
+    const clock = new THREE.Clock();
 
-    // Highlight province borders
-    const provName = findProvinceName(data);
-    highlightProvinceBorders(provName);
+    function animate() {
+        requestAnimationFrame(animate);
+        const t = clock.getElapsedTime();
 
-    const targetDist = (data && data.level === 'city') ? 1.0 : 1.9;
-    flyTo(lat, lng, 1200, targetDist);
-}
+        // Slow rotation of constellation lines
+        const constellations = scene.children.filter(c => c.type === 'Group');
+        // The last two groups are our constellation groups (added after star fields)
+        // We'll just let them drift slowly
 
-// ─── Sidebar Events ──────────────────────────────────────
-document.getElementById('sidebarToggle').addEventListener('click', () => {
-    const sidebar = document.getElementById('sidebar');
-    if (window.innerWidth <= 768) {
-        sidebar.classList.add('mobile-open');
-        document.getElementById('sidebarOverlay').classList.add('visible');
-    } else {
-        sidebar.classList.toggle('collapsed');
-    }
-});
-document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
-document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+        // Fly animation
+        if (flyState) {
+            const elapsed = performance.now() - flyState.startTime;
+            const p = Math.min(elapsed / flyState.duration, 1);
+            const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
 
-function closeSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (window.innerWidth <= 768) {
-        sidebar.classList.remove('mobile-open');
-        document.getElementById('sidebarOverlay').classList.remove('visible');
-    } else {
-        sidebar.classList.add('collapsed');
-    }
-}
+            camera.position.lerpVectors(flyState.startCamPos, flyState.endCamPos, ease);
+            camera.lookAt(0, 0, 0);
 
-// Search
-let searchTimer = null;
-document.getElementById('searchInput').addEventListener('input', (e) => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-        buildSidebar(allRegions, e.target.value);
-    }, 200);
-});
-
-// Tree click delegation
-document.getElementById('sidebarScroll').addEventListener('click', (e) => {
-    const header = e.target.closest('.tree-item-header');
-    if (!header) return;
-
-    const isProvince = header.classList.contains('province-header');
-    const clickedToggle = e.target.closest('.tree-toggle');
-
-    if (isProvince && clickedToggle) {
-        e.stopPropagation();
-        const provDiv = header.closest('.tree-item.province');
-        const children = provDiv.querySelector('.tree-children');
-        const toggle = provDiv.querySelector('.tree-toggle');
-        if (children) {
-            children.classList.toggle('expanded');
-            toggle.classList.toggle('expanded');
+            if (p >= 1) {
+                controls.enableDamping = true;
+                controls.enableRotate = true;
+                controls.target.set(0, 0, 0);
+                controls.update();
+                const cb = flyState.callback;
+                flyState = null;
+                if (cb) cb();
+            }
+        } else {
+            controls.update();
         }
-        return;
-    }
 
-    // Fly to location
-    const lat = parseFloat(header.dataset.lat);
-    const lng = parseFloat(header.dataset.lng);
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    // Find region data
-    const regionId = parseInt(header.dataset.regionId);
-    let regionData = null;
-
-    function findInTree(arr) {
-        for (const r of arr) {
-            if (r.id === regionId) return r;
-            if (r.children) {
-                const found = findInTree(r.children);
-                if (found) return found;
+        // Pulse selected province borders
+        if (selectedBorderMaterials) {
+            const bp = 0.3 + 0.5 * Math.sin(t * 1.5);
+            for (const mat of selectedBorderMaterials) {
+                mat.opacity = bp;
+                // Slight color shift toward bright gold
+                const mix = 0.6 + 0.4 * Math.sin(t * 1.5);
+                mat.color.setHSL(0.1, 0.7, mix * 0.5);
             }
         }
-        return null;
-    }
-    regionData = findInTree(allRegions);
 
-    // Close sidebar on mobile after selection
-    if (window.innerWidth <= 768) closeSidebar();
+        // Subtle atmosphere pulse
+        atmosMat.uniforms = atmosMat.uniforms || {};
 
-    selectRegion(regionData || { name: header.querySelector('.tree-label')?.textContent || '' }, lat, lng);
-});
-
-// ─── Resize ──────────────────────────────────────────────
-function onResize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-}
-window.addEventListener('resize', onResize);
-
-// ─── Animation ──────────────────────────────────────────
-const clock = new THREE.Clock();
-
-function animate() {
-    requestAnimationFrame(animate);
-    const t = clock.getElapsedTime();
-
-    // Fly animation — only move camera, keep controls.target at origin
-    if (flyState) {
-        const elapsed = performance.now() - flyState.startTime;
-        const p = Math.min(elapsed / flyState.duration, 1);
-        const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-
-        camera.position.lerpVectors(flyState.startCamPos, flyState.endCamPos, ease);
-        camera.lookAt(0, 0, 0);
-
-        if (p >= 1) {
-            controls.enableDamping = true;
-            controls.enableRotate = true;
-            // Sync controls internal state after fly
-            controls.target.set(0, 0, 0);
-            controls.update();
-            const cb = flyState.callback;
-            flyState = null;
-            if (cb) cb();
+        // Pulse scenic markers with staggered phases
+        for (let i = 0; i < scenicMarkers.length; i++) {
+            const m = scenicMarkers[i];
+            const phase = i * 0.3;
+            const pulse = 0.6 + 0.4 * Math.sin(t * 0.8 + phase);
+            m.ring.material.opacity = m.baseOpacity * pulse;
+            const scale = 0.8 + 0.4 * Math.sin(t * 0.8 + phase);
+            m.ring.scale.set(scale, scale, scale);
         }
-    } else {
-        controls.update();
+
+        renderer.render(scene, camera);
     }
 
-    // Pulse selected province borders only
-    if (selectedBorderMaterials) {
-        const bp = 0.4 + 0.45 * Math.sin(t * 1.5);
-        for (const mat of selectedBorderMaterials) {
-            mat.opacity = bp;
+    /* ──────────────────────────────────────────────────────
+       Init
+       ────────────────────────────────────────────────────── */
+    async function init() {
+        try {
+            const res = await fetch('/api/regions/tree');
+            allRegions = await res.json();
+        } catch (err) {
+            console.error('❌ 加载数据失败:', err);
+            document.getElementById('sidebarScroll').innerHTML =
+                '<div class="sidebar-no-result">数据加载失败，请刷新</div>';
         }
+
+        buildSidebar(allRegions);
+        loadProvinceBorders();
+        loadChinaBorder();
+
+        // Complete loading
+        loadingProgress = 100;
+        loadingBar.style.width = '100%';
+        clearInterval(loadInterval);
+
+        const loading = document.getElementById('loading');
+        setTimeout(() => {
+            loading.classList.add('hidden');
+            setTimeout(() => loading.style.display = 'none', 1200);
+        }, 500);
+
+        // Fly to China center after loading
+        setTimeout(() => flyTo(34, 108, 1500, 2.8), 800);
+
+        animate();
     }
 
-    renderer.render(scene, camera);
-}
-
-// ─── Data Fetch & Init ──────────────────────────────────
-async function init() {
-    try {
-        const res = await fetch('/api/regions/tree');
-        allRegions = await res.json();
-        console.log(`✅ 加载 ${allRegions.length} 个省级行政区`);
-    } catch (err) {
-        console.error('❌ 加载数据失败:', err);
-        // Fallback: no markers, but sidebar shows error
-        document.getElementById('sidebarScroll').innerHTML =
-            '<div class="sidebar-no-result">数据加载失败，请刷新重试</div>';
-    }
-
-    buildSidebar(allRegions);
-    loadProvinceBorders();
-    loadChinaBorder();
-
-    // Loading complete
-    const loading = document.getElementById('loading');
-    setTimeout(() => {
-        loading.classList.add('hidden');
-        setTimeout(() => loading.style.display = 'none', 800);
-    }, 600);
-
-    // Fly to China center after loading
-    setTimeout(() => flyTo(34, 108, 1500, 2.8), 900);
-
-    animate();
-    console.log('🌍 探索世界已加载');
-}
-
-init();
-</script>
+    init();
+    </script>
 
 </body>
 </html>
