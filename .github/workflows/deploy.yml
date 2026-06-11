@@ -46,6 +46,7 @@ jobs:
             docker compose pull
             docker compose down
             docker compose up -d
+          command_timeout: 30m
 
       - name: Notify Feishu
         if: always()
