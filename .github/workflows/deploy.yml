@@ -44,7 +44,8 @@ jobs:
             curl -sO https://raw.githubusercontent.com/xiaoyao-eric/aistudio/master/docker-compose.yml
             sed -i 's/ghcr.io/ghcr.m.daocloud.io/g' docker-compose.yml
             docker compose pull
-            docker compose down
+            docker compose down || true
+            docker rm -f aistudio 2>/dev/null || true
             docker compose up -d
           command_timeout: 30m
 
